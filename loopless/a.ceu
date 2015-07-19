@@ -1,0 +1,66 @@
+input void NEXT;
+
+/////////////////////////////
+// THIS SHOULDN'T BE REQUIRED
+data Dummy with
+  tag NIL;
+or
+  tag REC with
+    var Dummy* rec;
+  end
+end
+pool Dummy[] ds;
+/////////////////////////////
+
+var int tot;
+    // e.g., tot=3
+    // (0,0,0)
+    // (0,0,1)
+    // (.....)
+    // (1,1,1)
+
+native @nohold _scanf();
+_printf("Size of tuples: ");
+_scanf("%d", &tot);
+
+par/or do
+    every NEXT do
+        _printf("( ");
+    end
+with
+    traverse d in ds with
+        var int idx = 0;
+    do
+        if idx == tot then
+            await NEXT;
+        else
+            // (0,...)
+            // (1,...)
+            loop i in 2 do
+                par/or do
+                    every NEXT do
+                        _printf("%d ", i);
+                    end
+                with
+                    traverse d with
+                        this.idx = idx + 1;
+                    end;
+                end
+            end
+        end
+    end
+with
+    every NEXT do
+        _printf(")\n");
+    end
+with
+    loop do
+        async do
+            emit NEXT;
+        end
+    end
+end
+
+_printf(")\n");
+
+escape 1;
