@@ -2,6 +2,53 @@
 
 \usepackage{xspace}
 \newcommand{\CEU}{\textsc{C\'{e}u}\xspace}
+\newcommand{\code}[1] {{\small{\texttt{#1}}}}
+
+\usepackage{color}
+\definecolor{light}{gray}{0.87}
+\definecolor{dark}{gray}{0.30}
+%\definecolor{light}{rgb}{.90,.90,.90}
+\definecolor{darkgreen}{rgb}{0,.50,0}
+\definecolor{darkblue}{rgb}{0,0,.50}
+\definecolor{darkred}{rgb}{.50,0,0}
+\definecolor{darkpur}{rgb}{.50,0,.50}
+
+\usepackage{listings}
+%\usepackage{textcomp}
+\lstset{
+%columns=fullflexible,
+%basicstyle=\ttfamily,
+escapeinside={||},
+mathescape=true,
+    language=C, % choose the language of the code
+    basicstyle=\fontfamily{pcr}\selectfont\scriptsize\color{black},
+    keywordstyle=\color{black}\bfseries, % style for keywords
+    numbers=none, % where to put the line-numbers
+    numberstyle=\tiny, % the size of the fonts that are used for the line-numbers
+    backgroundcolor=\color{light},
+    showspaces=false, % show spaces adding particular underscores
+    showstringspaces=false, % underline spaces within strings
+    showtabs=false, % show tabs within strings adding particular underscores
+    %frame=single, % adds a frame around the code
+    tabsize=2, % sets default tabsize to 2 spaces
+    %rulesepcolor=\color{gray}
+    captionpos=b, % sets the caption-position to bottom
+    breaklines=false, % sets automatic line breaking
+    %breakatwhitespace=false,
+    numbersep=2em,
+    emph={par,or,hor,do,end,loop,await,emit,input,event,call,with,%
+          var,and,then,else,C,return,pure,deterministic,nohold,finalize,%
+          class, every, FOREVER, this, spawn, in, pool, watching, until, 
+          interface, each, abort, when, signal, PROC, CHAN, SIGNAL, PAR, not,
+          bool, data, tag, escape, new, traverse},
+    emphstyle={\bfseries},
+    commentstyle=\color{dark}\scriptsize,
+    %xleftmargin=20pt,
+    %xrightmargin=20pt,
+    framesep=20pt,
+    %upquote=true,
+    %aboveskip={1.5\baselineskip},
+}
 
 \begin{document}
 
@@ -23,23 +70,12 @@ Johnicholas Hines \\
     \affaddr{Affiliation} \\
     \email{email@domain.com}
 }
-% There's nothing stopping you putting the seventh, eighth, etc.
-% author on the opening page (as the 'third row') but we ask,
-% for aesthetic reasons that you place these 'additional authors'
-% in the \additional authors block, viz.
-\additionalauthors{Additional authors: John Smith (The Th{\o}rv{\"a}ld Group,
-email: {\texttt{jsmith@affiliation.org}}) and Julius P.~Kumquat
-(The Kumquat Consortium, email: {\texttt{jpkumquat@consortium.net}}).}
-\date{30 July 1999}
-% Just remember to make sure that the TOTAL number of authors
-% is the number that will appear on the first page PLUS the
-% number that will appear in the \additionalauthors section.
 
 \maketitle
 \begin{abstract}
 We propose a structured mechanism to traverse recursive data structures 
 incrementally.
-\texttt{traverse} is ...
+\code{traverse} is ...
 %a lexically scoped anonymous closure that can be invoked recursively.
 %Each recursive instance may contain multiple lines of execution
 
@@ -76,9 +112,7 @@ DESIGNED FOR \CEU:
 
 ...
 
-\section{Traverse}
-
-...
+\section{C\'eu}
 
 \begin{itemize}
 \item adts
@@ -86,6 +120,140 @@ DESIGNED FOR \CEU:
 \item expansion: pool / recursive spawn
 \item mutation / safety / watching
 \end{itemize}
+
+\subsection{Data Types}
+
+\CEU supports algebraic data types as an alternative to \code{struct}, 
+\code{union}, and \code{enum} declarations of C.
+For this reason, they differ from functional algebraic data types (\emph{a la} 
+Haskell and ML) and are mutable and have static memory management.
+Currently, there is no support for parametric types.
+
+% rebls-15/list/list.ceu
+\begin{figure}[t]
+\begin{lstlisting}[numbers=left,xleftmargin=3em]
+data List with
+    tag NIL;
+or
+    tag CONS with
+        var int   head;
+        var List* tail;
+    end
+end
+\end{lstlisting}
+\caption{
+A \code{List} data type with two constructors:
+    \code{NIL} builds an empty list, and
+    \code{CONS} builds an item \code{head} with a \code{tail} pointing to the 
+rest of the list.
+\label{lst.data.list}
+}
+\end{figure}
+
+The \code{List} type of Figure~\ref{lst.data.list} is either an empty list 
+\code{NIL} (line 2) or a \code{CONS} with a value in the \code{head} and a 
+pointer to the rest of the list in the \code{tail} (lines 4--7).
+The code in Figure~\ref{lst.data.mut} illustrates the use of the \code{List} 
+data type.
+
+% rebls-15/list/list.ceu
+\begin{figure}[t]
+\begin{lstlisting}[numbers=left,xleftmargin=3em]
+do
+    pool List[1] l1;
+    l1 = new List.CONS(1,
+              List.CONS(2,
+               List.NIL()));
+    _printf("%d, %d\n", l1:CONS.head,
+                        l1:CONS.tail:NIL);
+        // prints 1, 1
+end
+do
+    pool List[] l2;
+    l2 = new List.CONS(1,
+              List.CONS(2,
+               List.NIL()));
+    l2:CONS.tail = new List.CONS(3, List.NIL());
+    _printf("%d\n", l2:CONS.tail:CONS.head);
+        // prints 3 (2 has been freed)
+end
+\end{lstlisting}
+\caption{
+Declaration, allocation, mutation, and deallocation of \code{List} data types.
+\label{lst.data.mut}
+}
+\end{figure}
+
+In the first block (lines 1--9), the \code{pool} declaration of \code{l1} 
+represents the root of the list and also specifies a memory pool to hold all of 
+its elements (line 1).
+We limit \code{l1} to contain at most 1 element (i.e., \code{List[1]}).
+The declaration also implicitly initializes the root to be the base case of the 
+associated data type (i.e., \code{List.NIL}).
+Then, we mutate the root element to point to a dynamically allocated list of 
+two elements (lines 3--5).
+The assignment infers the destination memory pool based on the \emph{l-val} of 
+the expression (i.e., \code{l1}).
+In this case, only the allocation of first element succeeds, with the failed 
+allocation returning the base case of the data type (i.e., \code{List.NIL}).
+The print command (line 6) outputs \emph{1, 1}: the \code{head} of the first 
+element and the \code{NIL} check of the second element.
+Due to static memory management, when \code{l1} goes out of scope, at the end 
+of the block (line 9), all elements in the list are automatically deallocated.
+
+In the second block (lines 10--18), we declare the \code{l2} pool with an
+unbounded memory limit (i.e., \code{List[]} in line 11).
+Now, the two-element allocation succeeds (lines 12--14).
+Then, we mutate the tail of the first element to point to a newly allocated 
+element, which also succeeds (line 15).
+The print command (line 16) outputs \emph{3}, the new \code{head} of the second 
+element.
+In the moment of the mutation, the old subtree is completely removed from 
+memory.
+Finally, the end of the block (line 18) deallocates the pool along with all of 
+its elements.
+
+%TODO: invalid tag generates runtime error
+
+Data types in \CEU has a number of limitations:
+given that mutations deallocate whole subtrees, data types cannot represent 
+general graphs (in particular, cannot represent cycles);
+elements in different pools cannot be mixed;
+and pointers to subtrees (i.e., weak references) must be observed as they can 
+be deallocated at any time (discussed in Section~\ref{TODO}).
+
+\subsection{Traverse}
+
+...
+
+\begin{figure}%[t]
+\begin{lstlisting}[numbers=left,xleftmargin=3em]
+pool List[] l;
+l = new List.CONS(1,
+         List.CONS(2,
+          List.CONS(3,
+           List.NIL())));
+
+var int sum =
+    traverse e in l do
+        if e:NIL then
+            escape 0;
+        else
+            var int sum_tail = traverse e:CONS.tail;
+            escape sum_tail + e:CONS.head;
+        end
+    end;
+_printf("sum = %d\n", sum);
+\end{lstlisting}
+%\rule{8.5cm}{0.37pt}
+\caption{
+Calculating the \emph{sum} of a list.
+\label{lst.sum}
+}
+\end{figure}
+
+The code in Figure~\ref{lst.sum} creates a list (lines 1--5) and traverses it 
+to calculate the sum of elements (lines 7--16).
 
 ...
 
@@ -122,6 +290,95 @@ DESIGNED FOR \CEU:
 \end{itemize}
 
 ...
+
+\begin{figure}%[t]
+\begin{lstlisting}[numbers=left,xleftmargin=3em]
+data Command with
+    tag NOTHING;
+or
+    tag ROTATE with
+        var int angle;
+    end
+or
+    tag MOVE with
+        var int pixels;
+    end
+or
+    tag AWAIT with
+        var int ms;
+    end
+or
+    tag SEQUENCE with
+        var Command* one;
+        var Command* two;
+    end
+or
+    tag REPEAT with
+        var int      times;
+        var Command* command;
+    end
+or
+    tag PAROR with
+        var Command* one;
+        var Command* two;
+    end
+end
+end
+\end{lstlisting}
+%\rule{8.5cm}{0.37pt}
+\caption{ DSL for a LOGO turtle.
+\label{lst.turtle.dsl}
+}
+\end{figure}
+
+\begin{figure}%[t]
+\begin{lstlisting}[numbers=left,xleftmargin=3em]
+class Interpreter with
+    pool Command[]& cmds;
+    var  Turtle&    turtle;
+do
+    traverse cmd in cmds do
+        watching cmd do
+            if cmd:AWAIT then
+                await (cmd:AWAIT.ms) ms;
+
+            else/if cmd:ROTATE then
+                do TurtleRotate with
+                    this.turtle = turtle;
+                    this.angle  = cmd:ROTATE.angle;
+                end;
+
+            else/if cmd:MOVE then
+                do TurtleMove with
+                    this.turtle  = turtle;
+                    this.pixels = cmd:MOVE.pixels;
+                end;
+
+            else/if cmd:PAROR then
+                par/or do
+                    traverse cmd:PAROR.one;
+                with
+                    traverse cmd:PAROR.two;
+                end
+
+            else/if cmd:SEQUENCE then
+                traverse cmd:SEQUENCE.one;
+                traverse cmd:SEQUENCE.two;
+
+            else/if cmd:REPEAT then
+                loop i in cmd:REPEAT.times do
+                    traverse cmd:REPEAT.command;
+                end
+            end
+        end
+    end
+end
+\end{lstlisting}
+%\rule{8.5cm}{0.37pt}
+\caption{ The turtle interpreter.
+\label{lst.turtle.interpreter}
+}
+\end{figure}
 
 \section{Related Work}
 

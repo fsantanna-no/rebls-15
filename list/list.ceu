@@ -1,0 +1,46 @@
+data List with
+    tag NIL;
+or
+    tag CONS with
+        var int   head;
+        var List* tail;
+    end
+end
+
+do
+    pool List[1] list;
+    list = new List.CONS(1,
+                List.CONS(2,
+                 List.NIL()));
+    _printf("%d %d\n", list:CONS.head,
+                       list:CONS.tail:NIL);
+        // prints 1, 1
+end
+do
+    pool List[] list;
+    list = new List.CONS(1,
+                List.CONS(2,
+                 List.NIL()));
+    list:CONS.tail = new List.CONS(3, List.NIL());
+    _printf("%d\n", list:CONS.tail:CONS.head);
+        // prints 3 (2 has been freed)
+end
+
+pool List[] list = new
+    List.CONS(1,
+        List.CONS(2,
+            List.CONS(3,
+                List.NIL())));
+
+var int sum =
+    traverse l in list do
+        if l:NIL then
+            escape 0;
+        else
+            var int sum_tail = traverse l:CONS.tail;
+            escape sum_tail + l:CONS.head;
+        end
+    end;
+
+_printf("SUM = %d\n", sum);
+escape 0;
