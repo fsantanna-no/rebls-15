@@ -47,3 +47,17 @@ O(1)).
 
 It would be interesting to compare the implementation of the BT runtimes as 
 well as the domain applications in the languages.
+
+### References
+
+* <https://outforafight.wordpress.com/2014/07/15/behaviour-behavior-trees-for-ai-dudes-part-1/>
+* <http://livestream.com/accounts/1422055/events/4185971>
+* <https://github.com/eykd/owyl/>
+* <http://gamasutra.com/blogs/BenWeber/20120308/165151/ABL_versus_Behavior_Trees.php>
+* <https://github.com/Johnicholas/EldritchCopy/blob/master/Projects/Eldritch/Raw/Config/bt.config>
+* <http://www.chrishecker.com/My_Liner_Notes_for_Spore#Behavior_Tree_AI>
+* <http://www.naimadgames.com/publications/teaching/behavior_trees/behavior_trees.pdf>
+* <https://fai.cs.uni-saarland.de/hoffmann/cff.html>
+* <http://www.gamasutra.com/view/feature/130663/gdc_2005_proceeding_handling_.php>
+* <http://web.cs.wpi.edu/~rich/courses/imgd4000-d09/lectures/halo3.pdf>
+* <http://chrishecker.com/My_liner_notes_for_spore/Spore_Behavior_Tree_Docs>
