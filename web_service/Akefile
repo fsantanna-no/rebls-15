@@ -1,0 +1,9 @@
+minimal_example: minimal_example.c _ceu_app.c
+  gcc -Wall -o minimal_example minimal_example.c libmicrohttpd.a -lpthread
+
+_ceu_app.c: minimal_example.ceu
+  ceu minimal_example.ceu
+
+clean:
+  rm minimal_example _ceu_app.c _ceu_app.h
+
