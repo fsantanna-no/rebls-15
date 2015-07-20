@@ -1,0 +1,208 @@
+input (void*, u64, char*, _size_t, _ssize_t*) CRC;
+input (_MHD_Connection*, char*, char*, char*, char*, _size_t*, void**, int*) AHC;
+
+native @nohold _MHD_queue_response();
+native @nohold _MHD_create_response_from_buffer();
+native @nohold _MHD_create_response_from_callback();
+native @nohold _strcmp();
+native @nohold _printf();
+native @nohold _snprintf();
+native @plain _ssize_t;
+
+class Created with
+  var char* url;
+  var char* method;
+  var void** ptr;
+  var int* ret;
+  event void ok;
+do
+  _printf("Created for %s %s starting\n", url, method);
+  *ptr = (void*)this;
+  *ret = _MHD_YES;
+  do
+    var _MHD_Connection* connection;
+    var char* url;
+    var char* method;
+    var char* version;
+    var char* upload_data;
+    var _size_t* upload_data_size;
+    var void** ptr;
+    var int* ret;
+    (connection, url, method, version, upload_data, upload_data_size, ptr, ret) = await AHC until *ptr == (void*)this;
+
+    var _MHD_Response&? resp;
+    finalize
+      resp = _MHD_create_response_from_callback(
+        -1, // size of response, -1 for unknown
+        100, // block_size 
+        _crc, // content reader callback
+        (void*)this,
+        _NULL // content reader free callback
+      );
+    with
+      _MHD_destroy_response(resp);
+    end
+    _assert(resp);
+    *ret = _MHD_queue_response(connection, _MHD_HTTP_OK, resp);
+  end
+
+  par/or do
+    loop do
+      var _MHD_Connection* connection;
+      var char* url;
+      var char* method;
+      var char* version;
+      var char* upload_data;
+      var _size_t* upload_data_size;
+      var void** ptr;
+      var int* ret;
+      (connection, url, method, version, upload_data, upload_data_size, ptr, ret) = await AHC until *ptr == (void*)this;
+      *ret = _MHD_YES;
+    end
+  with
+    loop i in 10 do
+      var void* ptr;
+      var u64 pos;
+      var char* buf;
+      var _size_t max;
+      var _ssize_t* out;
+      (ptr, pos, buf, max, out) = await CRC until ptr == (void*)this;
+      *out = (_ssize_t)_snprintf(buf, max, "hello %d\n", i);
+    end
+  end
+  do
+    var void* ptr;
+    var u64 pos;
+    var char* buf;
+    var _size_t max;
+    var _ssize_t* out;
+    (ptr, pos, buf, max, out) = await CRC until ptr == (void*)this;
+    *out = _MHD_CONTENT_READER_END_OF_STREAM;
+  end
+  _printf("Created done\n");
+
+  await FOREVER;
+
+  // TODO: at this point, the created organism could stick around?
+  // maybe influence the Reporter's behavior?
+  // maybe the Reporter could traverse all the created things?
+
+  /*
+  loop do
+    var void* ptr;
+    var u64 pos;
+    var char* buf;
+    var _size_t max;
+    var _ssize_t* out;
+    (ptr, pos, buf, max, out) = await report;
+    *out = (_ssize_t)_snprintf(buf, max, "hello %d\n", i);
+  end
+  */
+end
+
+class Reporter with
+  var char* url;
+  var char* method;
+  var void** ptr;
+  var int* ret;
+  event void ok;
+do
+  _printf("Reporter for %s %s starting\n", url, method);
+  *ptr = (void*)this;
+  *ret = _MHD_YES;
+
+  do
+    var _MHD_Connection* connection;
+    var char* url;
+    var char* method;
+    var char* version;
+    var char* upload_data;
+    var _size_t* upload_data_size;
+    var void** ptr;
+    var int* ret;
+    (connection, url, method, version, upload_data, upload_data_size, ptr, ret) = await AHC until *ptr == (void*)this;
+
+    var _MHD_Response&? resp;
+    finalize
+      resp = _MHD_create_response_from_callback(
+        -1, // size of response, -1 for unknown
+        100, // block_size 
+        _crc, // content reader callback
+        (void*)this,
+        _NULL // content reader free callback
+      );
+    with
+      _MHD_destroy_response(resp);
+    end
+    _assert(resp);
+    *ret = _MHD_queue_response(connection, _MHD_HTTP_OK, resp);
+  end
+
+  par/or do
+    loop do
+      var _MHD_Connection* connection;
+      var char* url;
+      var char* method;
+      var char* version;
+      var char* upload_data;
+      var _size_t* upload_data_size;
+      var void** ptr;
+      var int* ret;
+      (connection, url, method, version, upload_data, upload_data_size, ptr, ret) = await AHC until *ptr == (void*)this;
+      *ret = _MHD_YES;
+    end
+  with
+    loop i in 10 do
+      var void* ptr;
+      var u64 pos;
+      var char* buf;
+      var _size_t max;
+      var _ssize_t* out;
+      (ptr, pos, buf, max, out) = await CRC until ptr == (void*)this;
+      *out = (_ssize_t)_snprintf(buf, max, "hello %d\n", i);
+    end
+  end
+
+  do
+    var void* ptr;
+    var u64 pos;
+    var char* buf;
+    var _size_t max;
+    var _ssize_t* out;
+    (ptr, pos, buf, max, out) = await CRC until ptr == (void*)this;
+    *out = _MHD_CONTENT_READER_END_OF_STREAM;
+  end
+
+  _printf("Reporter done\n");
+end
+
+pool Created[3] somewhere;
+pool Reporter[3] somewhere_else;
+
+loop do
+  var _MHD_Connection* connection;
+  var char* url;
+  var char* method;
+  var char* version;
+  var char* upload_data;
+  var _size_t* upload_data_size;
+  var void** ptr;
+  var int* ret;
+  (connection, url, method, version, upload_data, upload_data_size, ptr, ret) = await AHC;
+  if *ptr == null and _strcmp(url, "/") == 0 and _strcmp(method, "POST") == 0 then
+    var Created*? a = spawn Created in somewhere with
+      this.url = url;
+      this.method = method;
+      this.ptr = ptr;
+      this.ret = ret;
+    end;
+  else/if *ptr == null and _strcmp(url, "/") == 0 and _strcmp(method, "GET") == 0 then
+    var Reporter*? a = spawn Reporter in somewhere_else with
+      this.url = url;
+      this.method = method;
+      this.ptr = ptr;
+      this.ret = ret;
+    end;
+  end
+end
+
