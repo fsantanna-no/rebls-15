@@ -26,21 +26,24 @@ do
         // prints 3 (2 has been freed)
 end
 
-pool List[] list = new
-    List.CONS(1,
-        List.CONS(2,
-            List.CONS(3,
-                List.NIL())));
+do
+    pool List[] list = new
+        List.CONS(1,
+            List.CONS(2,
+                List.CONS(3,
+                    List.NIL())));
 
-var int sum =
-    traverse l in list do
-        if l:NIL then
-            escape 0;
-        else
-            var int sum_tail = traverse l:CONS.tail;
-            escape sum_tail + l:CONS.head;
-        end
-    end;
+    var int sum =
+        traverse l in list do
+            if l:NIL then
+                escape 0;
+            else
+                var int sum_tail = traverse l:CONS.tail;
+                escape sum_tail + l:CONS.head;
+            end
+        end;
 
-_printf("SUM = %d\n", sum);
+    _printf("SUM = %d\n", sum);
+end
+
 escape 0;
