@@ -1,0 +1,8 @@
+a.out: main.c _ceu_app.c ceu_types.h
+  gcc main.c
+
+_ceu_app.c: gray.ceu
+  ceu gray.ceu
+
+clean:
+  rm a.out _ceu_app.c _ceu_app.h

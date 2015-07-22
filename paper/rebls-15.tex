@@ -273,6 +273,25 @@ to calculate the sum of elements (lines 7--16).
 
 \subsection{Behavior Trees}
 
+The term ``Behavior Trees'' denotes a family of DSLs 
+used for Game AI.
+The term is loose, because different games use different languages,
+but generally it indicates an interpreted domain-specific language
+for creature behavior that includes at least sequence and selection combinators,
+and which are ``ticked'' periodically.
+
+The semantics of the sequence combinator can be understood as short-circuit evaluation of a conjunction;
+the Seq node ticks its left subtree until it finishes,
+and if it finishes successfully, ticks its right subtree until it finishes.
+The semantics of the selection combinator can be understood as short-circuit evaluation of an alternation;
+the Sel node ticks its left subtree until it finishes,
+and if it did not finish successfully, ticks its right subtree until it finishes.
+
+This skeleton, augmented with leaves that test properties, set properties, perform animations and sounds,
+and other custom combinators, can be preferable to finite state machines (hierarchical, augmented, or otherwise) for authoring Game AI.
+
+Ceu's parallel features make implementing a parallel combinator for behavior trees much easier.
+
 ...
 
 \begin{itemize}

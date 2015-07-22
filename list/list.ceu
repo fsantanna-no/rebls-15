@@ -2,7 +2,7 @@ data List with
     tag NIL;
 or
     tag CONS with
-        var int   head;
+        var int head;
         var List* tail;
     end
 end
