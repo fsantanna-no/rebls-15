@@ -74,13 +74,20 @@ Johnicholas Hines \\
 
 \maketitle
 \begin{abstract}
-We propose a structured mechanism to traverse recursive data structures 
-incrementally.
-\code{traverse} is ...
-%a lexically scoped anonymous closure that can be invoked recursively.
-%Each recursive instance may contain multiple lines of execution
+We propose a structured mechanism to traverse recursive data types 
+incrementally, in successive reactions to input events.
+\code{traverse} is an iterator-like anonymous block that can be invoked 
+recursively and suspended at any point, retaining the full state and stack 
+frames alive.
+\code{traverse} is designed for the synchronous language \CEU, inheriting all 
+existing concurrency functionality, such as parallel compositions with 
+orthogonal abortion, static memory management, and bounded memory and reaction 
+time.
+We present three application scenarios that take advantage of recursive and 
+reactive behavior: \emph{incremental computation}, \emph{behavior trees}, and 
+\emph{control-oriented domain specific languages}.
 
-
+\begin{comment}
 MIX OF:
 \begin{itemize}
     \item recursive calls to anonymous closures
@@ -95,7 +102,7 @@ DESIGNED FOR \CEU:
     \item reactive
     \item mutation
 \end{itemize}
-
+\end{comment}
 
 \end{abstract}
 
