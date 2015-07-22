@@ -1,0 +1,109 @@
+input void VISIT;
+input void NEXT;
+
+data Gray with
+    tag NIL;
+or
+    tag CONS with
+        var int head;
+        var Gray&? target;
+        var Gray* tail;
+    end
+end
+
+do
+    pool Gray[1] gray;
+    gray = new Gray.CONS(1, null, Gray.CONS(2, null, Gray.NIL()));
+    _printf("%d %d\n", gray:CONS.head,
+                       gray:CONS.tail:NIL);
+        // prints 1, 1
+end
+/*
+do
+    pool Gray[] gray;
+    gray = new Gray.CONS(1, Gray.CONS(2, Gray.NIL()));
+    gray:CONS.tail = new Gray.CONS(3, Gray.NIL());
+    _printf("%d\n", gray:CONS.tail:CONS.head);
+        // prints 3 (2 has been freed)
+end
+
+pool Gray[] gray = new
+    Gray.CONS(1,
+        Gray.CONS(2,
+            Gray.CONS(3,
+                Gray.NIL())));
+
+traverse l in gray with
+  var Gray* target;
+do
+  target = l;
+  if l:NIL then
+    escape 0;
+  else
+    _printf("%d, ", l:CONS.head);
+    traverse l:CONS.tail; // recurse
+  end
+end
+
+par/or do
+  every VISIT do
+    _printf("(");
+    traverse l in gray do
+      if l:NIL then
+        escape 0;
+      else
+        _printf("%d, ", l:CONS.head);
+        traverse l:CONS.tail;
+      end
+    end
+    _printf(")\n");
+  end
+with
+  every NEXT do
+    _printf("next begins\n");
+    traverse l in gray do
+      // Focus::Choose
+      if l:NIL then
+        // LastFocus::Choose
+        _printf("assert false! %d\n", __LINE__);
+        escape 0;
+      else
+        // NonlastFocus::Choose
+        var Gray* j = l:CONS.target;
+        l:CONS.target = l;
+        traverse j in gray do
+          // Focus::ChooseHelper
+          if j:NIL then
+            // LastFocus::ChooseHelper
+            _printf("assert false! %d\n", __LINE__);
+            escape 0;
+          else
+            // NonlastFocus::ChooseHelper
+            j:CONS.target = 
+              traverse j:CONS.tail in gray do
+                // Focus::GetTarget
+                if j:CONS.tail:NIL then
+                  // LastFocus::GetTarget
+                  escape j:CONS.tail;
+                else
+                  // NonlastFocus::GetTarget
+                  escape j:CONS.target;
+                end
+              end;
+            j:CONS.target = j;
+            // TODO
+          end
+        end
+      end
+  end
+with
+  async do
+    loop do
+      emit VISIT;
+      emit NEXT;
+    end
+  end
+end
+*/
+
+escape 0;
