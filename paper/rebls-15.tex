@@ -120,14 +120,72 @@ DESIGNED FOR \CEU:
 
 ...
 
+\newpage
 \section{C\'eu}
 
-\begin{itemize}
+\begin{comment}
 \item adts
 \item description
 \item expansion: pool / recursive spawn
 \item mutation / safety / watching
-\end{itemize}
+\end{comment}
+
+\begin{figure}%[t]
+\begin{lstlisting}[numbers=left,xleftmargin=3em]
+input void RESET;   // declares an external event
+var int v = 0;     // variable shared by the trails
+par do
+   loop do       // 1st trail
+      await 1s;
+      v = v + 1;
+      _printf("v = %d\n", v);
+   end
+with
+   loop do       // 2nd trail
+      await RESET;
+      v = 0;
+   end
+end
+\end{lstlisting}
+\caption{ Introductory example in \CEU.
+\label{lst.intro}
+}
+\end{figure}
+
+\CEU is a concurrent and reactive language in which the lines of execution, 
+known as \emph{trails}, react all together continuously and in synchronous 
+steps to external stimuli.
+The introductory example in Figure~\ref{lst.intro} defines an input event 
+\code{RESET} (line 1), a shared variable \code{v} (line 2), and starts two 
+trails with the \code{par} construct (lines 3-14): the first (lines 4-8) 
+increments variable \code{v} on every second and prints its value on screen; 
+the second (lines 10-13) resets \code{v} on every external request to 
+\code{RESET}.
+\CEU is tightly integrated with \emph{C} and can access libraries of the 
+underlying platform directly by prefixing symbols with an underscore (e.g., 
+\code{\_printf(<...>)}, in line 7).
+
+In the synchronous model of \CEU, a program reacts to an occurring event 
+completely before handling the next.
+%
+A reaction represents a logical instant in which all trails awaiting the 
+occurring event awake and execute, one after the other, until they await again 
+or terminate.
+%
+During a reaction, the environment is invariant and does not interrupt the 
+running trails%
+\footnote{
+The actual implementation enqueues incoming input events to process them in 
+further reactions.
+}.
+If multiple trails react to the same event, the scheduler employs lexical 
+order, i.e., the trail that appears first in the source code executes first.
+%
+For this reason, programs are deterministic even in the presence of side 
+effects in concurrent lines of execution.
+%
+To avoid infinite execution for reactions, \CEU ensures that all loops contain 
+\code{await} statements~\cite{ceu.sensys13}.
 
 \subsection{Recursive Data Types}
 
