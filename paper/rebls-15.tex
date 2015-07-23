@@ -14,6 +14,8 @@
 \definecolor{darkred}{rgb}{.50,0,0}
 \definecolor{darkpur}{rgb}{.50,0,.50}
 
+% \input bnf.tex
+
 \usepackage{listings}
 %\usepackage{textcomp}
 \lstset{
@@ -190,13 +192,34 @@ To avoid infinite execution for reactions, \CEU ensures that all loops contain
 
 \subsection{Recursive Data Types}
 
-\CEU supports algebraic data types (ADTs) as a safer alternative to C's 
-\code{struct}, \code{union}, and \code{enum} definitions.
-However, \CEU preserves the mutable semantics of data types in C, and extends 
-it with static memory management.
-For this reason, ADTs in \CEU differ in fundamental ways from functional 
-algebraic data types (\emph{a la} Haskell and ML).
-Currently, there is no parametric support for ADTs in \CEU.
+The \code{data} construct in \CEU provides a safer alternative to C's
+\code{struct}, \code{union}, and \code{enum} definitions. A \code{data} entry
+declares either a non-recursive structure containing a set of mutable fields
+or a tagged union. A tagged union consists of a set of tag declarations, each
+of which may be a bare tag or contain mutable fields. If any of the tag
+declarations refers to the data type being declared, we have a recursive data
+type. In this case, the first tag of the tagged union must be a bare tag, and
+it will act as the union's null type: in \CEU, every tagged union is an option
+type.
+
+%%% (Uncomment \input bnf.tex above)
+%\begin{figure}[t]
+%\begingrammar
+%<data> : "data" <id> "with" <dataBody> "end" ";"
+%
+%<dataBody> : <field>* | <tags>
+%
+%<tags> : <tag> [ "or" <tags> ]* 
+%
+%<tag> : "tag" <id> \{ ";" | "with" <field>* "end" \}
+%
+%<field> : "var" <type> <id> ";"
+%
+%\endgrammar
+%\caption{
+%The \code{data} construct in \CEU
+%}
+%\end{figure}
 
 % rebls-15/list/list.ceu
 \begin{figure}[t]
@@ -211,23 +234,25 @@ or
 end
 
 do
-   pool List[1] l1;
-   l1 = new List.CONS(1,
-             List.CONS(2,
-              List.NIL()));
-   _printf("%d, %d\n", l1:CONS.head,
-                  l1:CONS.tail:NIL);
-      // prints 1, 1
+   pool List[1] lst1;
+   lst1 =new List.CONS(10,
+              List.CONS(20,
+               List.CONS(30,
+                List.NIL()));
+   _printf("%d, %d\n", lst1:CONS.head,
+                  lst1:CONS.tail:NIL);
+      // prints 10, 1
 end
 
 do
-   pool List[] l2;
-   l2 = new List.CONS(1,
-             List.CONS(2,
-              List.NIL()));
-   l2:CONS.tail = new List.CONS(3, List.NIL());
-   _printf("%d\n", l2:CONS.tail:CONS.head);
-      // prints 3 (2 has been freed)
+   pool List[] lst2;
+   lst2 =new List.CONS(10,
+              List.CONS(20,
+               List.CONS(30,
+                List.NIL()));
+   lst2:CONS.tail =new List.CONS(50, List.NIL());
+   _printf("%d\n", lst2:CONS.tail:CONS.head);
+      // prints 50 (20 and 30 have been freed)
 end
 \end{lstlisting}
 \caption{
@@ -237,49 +262,53 @@ A recursive \code{List} data type definition (lines 1--8) and uses (lines
 }
 \end{figure}
 
-Figure~\ref{lst.data.list} illustrates the recursive \code{List} data type, 
-which is either an empty list \code{NIL} (line 2) or a \code{CONS} with a value 
-in the field \code{head} and a pointer to the rest of the list in the field 
-\code{tail} (lines 4--7).
+Figure~\ref{lst.data.list} illustrates the recursive \code{List} data type,
+declared as a tagged union. The first tag, \code{NIL} (line 2), represents
+the empty list and is the union's null type. The second tag, \code{CONS},
+holds a value in its field \code{head} and a pointer to the rest of the list
+in the field \code{tail} (lines 4--7).
 
-In the first block (lines 10--18), the \code{pool} declaration of \code{l1} 
-represents the root of the list and also specifies a memory pool to hold all of 
-its elements (line 10).
-We limit \code{l1} to contain at most 1 element (i.e., \code{List[1]}).
-The declaration also implicitly initializes the root to be the base case of the 
+All memory allocated by \CEU constructs is managed by lexically-scoped memory
+pools. The \code{pool} keyword declares a memory pool of a given size and
+a reference to a root object. In line 11, we declare a pool of \code{List}
+objects of size 1, identified by root reference \code{lst1},
+scoped by the \code{do} block in lines 10--19.
+The declaration also implicitly initializes the root to the null tag of the 
 associated data type (i.e., \code{List.NIL}).
-Then, we mutate the root element to point to a dynamically allocated list of 
-two elements (lines 12--14).
-The assignment infers the destination memory pool based on the \emph{l-val} of 
-the expression (i.e., \code{l1}).
-In this case, only the allocation of first element succeeds, with the failed 
-allocation returning the base case of the data type (i.e., \code{List.NIL}).
-The print command (line 15) outputs \emph{``1, 1''}: the \code{head} of the 
-first element (the operator \code{`:'} is equivalent to C's \code{`->'}) and 
-the \code{NIL} check of the second element.
-Due to static memory management, when \code{l1} goes out of scope, at the end 
-of the block (line 18), all elements in the list are automatically deallocated.
 
-In the second block (lines 20--28), we declare the \code{l2} pool with an
-unbounded memory limit (i.e., \code{List[]} in line 21).
-Now, the two-element allocation succeeds (lines 22--24).
+Then, in lines 12--15, we use the \code{=new} construct, which performs
+allocation and assignment: it attempts to dynamically allocate a list of
+three elements (using three \code{List.CONS} constructors in the assignment
+\emph{r-value}), inferring the destination memory pool based on the 
+assignment's \emph{l-value} (i.e. \code{lst1}).
+
+Since the pool has size 1, only the allocation of first element succeeds, with the failed 
+allocations returning the null tag for this type (i.e., \code{List.NIL}).
+The print command (line 16) outputs ``\texttt{10, 1}'': the \code{head} of the 
+first element (the operator \code{`:'} is equivalent to C's \code{`->'}) and 
+a true value for the \code{NIL} check of the second element.
+
+In the second block (lines 21--30), we declare the \code{lst2} pool with an
+unbounded memory limit (i.e., \code{List[]} in line 22).
+Now, the three-element allocation succeeds (lines 23--26).
 Then, we mutate the tail of the first element to point to a newly allocated 
-element, which also succeeds (line 25).
-The print command (line 26) outputs \emph{``3''}, the new \code{head} of the 
-second element.
-In the moment of the mutation, the old subtree is completely removed from 
-memory.
-Finally, the end of the block (line 28) deallocates the pool along with all of 
+element in the same pool, which also succeeds (line 27).
+The print command (line 28) outputs ``\texttt{50}'', displaying the \code{head}
+of the new second element.
+In the moment of the mutation, the old subtree (containing values  ``\texttt{20}''
+and  ``\texttt{30}'') is completely removed from memory.
+Finally, the end of the block (line 30) deallocates the pool along with all of 
 its elements.
 
 %TODO: invalid tag generates runtime error
 
-Data types in \CEU have a number of limitations:
-given that mutations deallocate whole subtrees, data types cannot represent 
-general graphs (in particular, they cannot contain cycles);
-elements in different pools cannot be mixed;
-and pointers to subtrees (i.e., weak references) must be observed as they can 
-be deallocated at any time (to be discussed in Section~\ref{sec.traverse}).
+Data types in \CEU have a number of restrictions.
+Given that mutations deallocate whole subtrees, data types cannot represent 
+general graphs (in particular, they cannot contain cycles).
+Elements in different pools cannot be mixed;
+and pointers to subtrees (i.e., weak references) must be observed via the
+\code{watching} construct, as they can be invalidated at any time
+(to be discussed in Section~\ref{sec.traverse}).
 
 \subsection{Traversing Data Types}
 \label{sec.traverse}
@@ -486,7 +515,6 @@ or
         var Command* one;
         var Command* two;
     end
-end
 end
 \end{lstlisting}
 %\rule{8.5cm}{0.37pt}
