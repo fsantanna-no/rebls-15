@@ -40,157 +40,200 @@
   [5] "Data Structures, Algorithms, and Performance", Derick Wood,
        Addison-Wesley, 1993, pp 367-375.
 */
+// Some modifications by Johnicholas Hines
 
+#include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
 
-int size;  /* number of nodes in the tree */
-           /* Not actually needed for any of the operations */
+// number of nodes in the tree
+// Not actually needed for any of the operations
+int size;  
 
 typedef struct tree_node Tree;
 struct tree_node {
-    Tree * left, * right;
-    int item;
+  Tree* left;
+  Tree* right;
+  int item;
 };
 
-Tree * splay (int i, Tree * t) {
-/* Simple top down splay, not requiring i to be in the tree t.  */
-/* What it does is described above.                             */
-    Tree N, *l, *r, *y;
-    if (t == NULL) return t;
-    N.left = N.right = NULL;
-    l = r = &N;
-
-    for (;;) {
-	if (i < t->item) {
-	    if (t->left == NULL) break;
-	    if (i < t->left->item) {
-		y = t->left;                           /* rotate right */
-		t->left = y->right;
-		y->right = t;
-		t = y;
-		if (t->left == NULL) break;
-	    }
-	    r->left = t;                               /* link right */
-	    r = t;
-	    t = t->left;
-	} else if (i > t->item) {
-	    if (t->right == NULL) break;
-	    if (i > t->right->item) {
-		y = t->right;                          /* rotate left */
-		t->right = y->left;
-		y->left = t;
-		t = y;
-		if (t->right == NULL) break;
-	    }
-	    l->right = t;                              /* link left */
-	    l = t;
-	    t = t->right;
-	} else {
-	    break;
-	}
-    }
-    l->right = t->left;                                /* assemble */
-    r->left = t->right;
-    t->left = N.right;
-    t->right = N.left;
+Tree* splay(int i, Tree * t) {
+  // Simple top down splay, not requiring i to be in the tree t.
+  // What it does is described above.
+  Tree* y;
+  if (t == NULL) {
     return t;
-}
+  }
+  Tree N = { NULL, NULL, 0 };
+  Tree* l = &N;
+  Tree* r = &N;
 
-/* Here is how sedgewick would have written this.                    */
-/* It does the same thing.                                           */
-Tree * sedgewickized_splay (int i, Tree * t) {
-    Tree N, *l, *r, *y;
-    if (t == NULL) return t;
-    N.left = N.right = NULL;
-    l = r = &N;
-
-    for (;;) {
-	if (i < t->item) {
-	    if (t->left != NULL && i < t->left->item) {
-		y = t->left; t->left = y->right; y->right = t; t = y;
-	    }
-	    if (t->left == NULL) break;
-	    r->left = t; r = t; t = t->left;
-	} else if (i > t->item) {
-	    if (t->right != NULL && i > t->right->item) {
-		y = t->right; t->right = y->left; y->left = t; t = y;
-	    }
-	    if (t->right == NULL) break;
-	    l->right = t; l = t; t = t->right;
-	} else break;
-    }
-    l->right=t->left; r->left=t->right; t->left=N.right; t->right=N.left;
-    return t;
-}
-
-Tree * insert(int i, Tree * t) {
-/* Insert i into the tree t, unless it's already there.    */
-/* Return a pointer to the resulting tree.                 */
-    Tree * new;
-    
-    new = (Tree *) malloc (sizeof (Tree));
-    if (new == NULL) {
-	printf("Ran out of space\n");
-	exit(1);
-    }
-    new->item = i;
-    if (t == NULL) {
-	new->left = new->right = NULL;
-	size = 1;
-	return new;
-    }
-    t = splay(i,t);
+  for (;;) {
     if (i < t->item) {
-	new->left = t->left;
-	new->right = t;
-	t->left = NULL;
-	size ++;
-	return new;
+      if (t->left == NULL) {
+        break;
+      }
+      if (i < t->left->item) {
+        // rotate right
+        y = t->left;
+        t->left = y->right;
+        y->right = t;
+        t = y;
+        if (t->left == NULL) {
+          break;
+        }
+      }
+      // link right
+      r->left = t;
+      r = t;
+      t = t->left;
     } else if (i > t->item) {
-	new->right = t->right;
-	new->left = t;
-	t->right = NULL;
-	size++;
-	return new;
-    } else { /* We get here if it's already in the tree */
-             /* Don't add it again                      */
-	free(new);
-	return t;
+      if (t->right == NULL) {
+        break;
+      }
+      if (i > t->right->item) {
+        // rotate left
+        y = t->right;                          
+        t->right = y->left;
+        y->left = t;
+        t = y;
+        if (t->right == NULL) {
+          break;
+        }
+      }
+      // link left
+      l->right = t;                              
+      l = t;
+      t = t->right;
+    } else {
+      break;
     }
+  }
+  // assemble
+  l->right = t->left;                                
+  r->left = t->right;
+  t->left = N.right;
+  t->right = N.left;
+  return t;
 }
 
-Tree * delete(int i, Tree * t) {
-/* Deletes i from the tree if it's there.               */
-/* Return a pointer to the resulting tree.              */
-    Tree * x;
-    if (t==NULL) return NULL;
-    t = splay(i,t);
-    if (i == t->item) {               /* found it */
-	if (t->left == NULL) {
-	    x = t->right;
-	} else {
-	    x = splay(i, t->left);
-	    x->right = t->right;
-	}
-	size--;
-	free(t);
-	return x;
+// Here is how sedgewick would have written this.
+// It does the same thing.
+Tree* sedgewickized_splay (int i, Tree * t) {
+  Tree N, *l, *r, *y;
+  if (t == NULL) return t;
+  N.left = N.right = NULL;
+  l = r = &N;
+  
+  for (;;) {
+    if (i < t->item) {
+      if (t->left != NULL && i < t->left->item) {
+        y = t->left; t->left = y->right; y->right = t; t = y;
+      }
+      if (t->left == NULL) break;
+      r->left = t; r = t; t = t->left;
+    } else if (i > t->item) {
+      if (t->right != NULL && i > t->right->item) {
+        y = t->right; t->right = y->left; y->left = t; t = y;
+      }
+      if (t->right == NULL) break;
+      l->right = t; l = t; t = t->right;
+    } else break;
+  }
+  l->right=t->left; r->left=t->right; t->left=N.right; t->right=N.left;
+  return t;
+}
+
+Tree* insert(int i, Tree * t) {
+  // Insert i into the tree t, unless it's already there.
+  // Return a pointer to the resulting tree.
+  Tree* new = (Tree *) malloc(sizeof (Tree));
+  if (new == NULL) {
+    printf("Ran out of space\n");
+    exit(1);
+  }
+  new->item = i;
+  if (t == NULL) {
+    new->left = new->right = NULL;
+    size = 1;
+    return new;
+  }
+  t = splay(i,t);
+  if (i < t->item) {
+    new->left = t->left;
+    new->right = t;
+    t->left = NULL;
+    size ++;
+    return new;
+  } else if (i > t->item) {
+    new->right = t->right;
+    new->left = t;
+    t->right = NULL;
+    size++;
+    return new;
+  } else {
+    // We get here if it's already in the tree
+    // Don't add it again
+    free(new);
+    return t;
+  }
+}
+
+Tree* delete(int i, Tree * t) {
+  // Deletes i from the tree if it's there.
+  // Return a pointer to the resulting tree.
+  Tree* x;
+  if (t == NULL) {
+    return NULL;
+  }
+  t = splay(i,t);
+  if (i == t->item) {
+    // found it
+    if (t->left == NULL) {
+      x = t->right;
+    } else {
+      x = splay(i, t->left);
+      x->right = t->right;
     }
-    return t;                         /* It wasn't there */
+    size--;
+    free(t);
+    return x;
+  }
+  // It wasn't there
+  return t; 
 }
 
 void main() {
-/* A sample use of these functions.  Start with the empty tree,         */
-/* insert some stuff into it, and then delete it                        */
-    Tree * root;
-    int i;
-    root = NULL;              /* the empty tree */
-    size = 0;
-    for (i = 0; i < 1024; i++) {
-	root = insert((541*i) & (1023), root);
+  // A sample use of these functions.  Start with the empty tree,
+  // insert some stuff into it, and then delete it
+  int i;
+
+  Tree* root = NULL; // the empty tree
+  size = 0;
+  int N;
+  assert(scanf("%d\n", &N) == 1);
+  for(i = 0; i < N; i++) {
+    char ch;
+    int u;
+    assert(scanf("%c %d\n", &ch, &u) == 2);
+    printf("scanned '%c' %d\n", ch, u);
+    switch (ch) {
+    case 't':
+      root = splay(u, root);
+      printf((root && root->item == u) ? "YES\n" : "NO\n" );
+      break;
+    case 'a':
+      root = insert(u, root);
+      printf("added %d\n", u);
+      break;
+    case 'd':
+      root = delete(u, root);
+      printf("deleted %d\n", u);
+      break;
+    default:
+      printf("I didn't understand that.\n");
+      break;
     }
-    for (i = 0; i < 1024; i++) {
-	root = delete((541*i) & (1023), root);
-    }
-    printf("size = %d\n", size);
+  }
+  printf("size = %d\n", size);
 }

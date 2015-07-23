@@ -1,0 +1,5 @@
+top-down-splay: top-down-splay.c
+  gcc -o top-down-splay top-down-splay.c
+
+clean:
+  rm top-down-splay
