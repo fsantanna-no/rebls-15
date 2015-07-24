@@ -1,109 +1,72 @@
+native do
+  #include <assert.h>
+end
+
 input void VISIT;
 input void NEXT;
 
-data Gray with
-    tag NIL;
+/////////////////////////////
+// THIS SHOULDN'T BE REQUIRED
+data Dummy with
+  tag NIL;
 or
-    tag CONS with
-        var int head;
-        var Gray&? target;
-        var Gray* tail;
-    end
-end
-
-do
-    pool Gray[1] gray;
-    gray = new Gray.CONS(1, null, Gray.CONS(2, null, Gray.NIL()));
-    _printf("%d %d\n", gray:CONS.head,
-                       gray:CONS.tail:NIL);
-        // prints 1, 1
-end
-/*
-do
-    pool Gray[] gray;
-    gray = new Gray.CONS(1, Gray.CONS(2, Gray.NIL()));
-    gray:CONS.tail = new Gray.CONS(3, Gray.NIL());
-    _printf("%d\n", gray:CONS.tail:CONS.head);
-        // prints 3 (2 has been freed)
-end
-
-pool Gray[] gray = new
-    Gray.CONS(1,
-        Gray.CONS(2,
-            Gray.CONS(3,
-                Gray.NIL())));
-
-traverse l in gray with
-  var Gray* target;
-do
-  target = l;
-  if l:NIL then
-    escape 0;
-  else
-    _printf("%d, ", l:CONS.head);
-    traverse l:CONS.tail; // recurse
+  tag REC with
+    var Dummy* rec;
   end
+end
+pool Dummy[] ds;
+/////////////////////////////
+
+var int tot  = 4;
+
+// native @nohold _scanf();
+// _printf("Size of tuples: ");
+// _scanf("%d", &tot);
+
+var int&? vec;
+finalize
+    vec = _malloc(sizeof(int)*tot);
+with
+    native @nohold _free();
+    _free(vec);
+end
+
+loop i in tot do
+    (&vec!)[i] = 0;
 end
 
 par/or do
-  every VISIT do
-    _printf("(");
-    traverse l in gray do
-      if l:NIL then
-        escape 0;
-      else
-        _printf("%d, ", l:CONS.head);
-        traverse l:CONS.tail;
-      end
-    end
-    _printf(")\n");
-  end
-with
-  every NEXT do
-    _printf("next begins\n");
-    traverse l in gray do
-      // Focus::Choose
-      if l:NIL then
-        // LastFocus::Choose
-        _printf("assert false! %d\n", __LINE__);
-        escape 0;
-      else
-        // NonlastFocus::Choose
-        var Gray* j = l:CONS.target;
-        l:CONS.target = l;
-        traverse j in gray do
-          // Focus::ChooseHelper
-          if j:NIL then
-            // LastFocus::ChooseHelper
-            _printf("assert false! %d\n", __LINE__);
-            escape 0;
-          else
-            // NonlastFocus::ChooseHelper
-            j:CONS.target = 
-              traverse j:CONS.tail in gray do
-                // Focus::GetTarget
-                if j:CONS.tail:NIL then
-                  // LastFocus::GetTarget
-                  escape j:CONS.tail;
-                else
-                  // NonlastFocus::GetTarget
-                  escape j:CONS.target;
-                end
-              end;
-            j:CONS.target = j;
-            // TODO
-          end
+    every VISIT do
+        _printf("( ");
+        loop i in tot do
+            _printf("%d ", (&vec!)[i]);
         end
-      end
-  end
-with
-  async do
-    loop do
-      emit VISIT;
-      emit NEXT;
+        _printf(")\n");
     end
-  end
+with
+    traverse d in ds with
+        var int idx = 0;
+        var bool reversed = false;
+    do
+        if idx == tot then
+            await NEXT;
+        else
+            traverse d with
+                this.idx = idx + 1;
+            end;
+            (&vec!)[idx] = 1 - (&vec!)[idx];
+            traverse d with
+                this.idx = idx + 1;
+            end;
+         end
+    end
+with
+    loop do
+        async do
+            emit VISIT;
+            emit NEXT;
+        end
+    end
 end
-*/
 
 escape 0;
