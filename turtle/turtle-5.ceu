@@ -62,10 +62,10 @@ or
     tag STREAM_ROOT with
         var Command* run;
         var Command* tmp;
-        var Command* nxt;
+        var Command* queue;
     end
 or
-    tag STREAM_NEXT with
+    tag STREAM_ITEM with
         var Command* prv;
         var Command* cmd;
     end
@@ -77,7 +77,7 @@ pool Command[20] cmds = new
     Command.STREAM_ROOT(
         DO1SEC(Command.MOVE(100)),
         Command.NOTHING(),
-        Command.STREAM_NEXT(
+        Command.STREAM_ITEM(
             Command.NOTHING(),
             Command.NOTHING()));
 
@@ -201,16 +201,16 @@ with
                     par/and do
                         traverse cmd:STREAM_ROOT.run;
                     with
-                        await cmd:STREAM_ROOT.nxt;
+                        await cmd:STREAM_ROOT.queue;
                     end
-                    cmds:STREAM_ROOT.run = cmds:STREAM_ROOT.nxt;
-                    cmds:STREAM_ROOT.nxt = new Command.STREAM_NEXT(
+                    cmds:STREAM_ROOT.run = cmds:STREAM_ROOT.queue;
+                    cmds:STREAM_ROOT.queue = new Command.STREAM_ITEM(
                                                 Command.NOTHING(),
                                                 Command.NOTHING());
                 end
-            else/if cmd:STREAM_NEXT then
-                traverse cmd:STREAM_NEXT.prv;
-                traverse cmd:STREAM_NEXT.cmd;
+            else/if cmd:STREAM_ITEM then
+                traverse cmd:STREAM_ITEM.prv;
+                traverse cmd:STREAM_ITEM.cmd;
 
             else
                 _ceu_out_assert(0, "not implemented");
@@ -223,21 +223,21 @@ with
 with
     loop do
         await 2s;
-        cmds:STREAM_ROOT.tmp = new Command.STREAM_NEXT(
+        cmds:STREAM_ROOT.tmp = new Command.STREAM_ITEM(
                                     Command.NOTHING(),
                                     DO1SEC(Command.ROTATE(180)));
-        _ceu_out_assert(cmds:STREAM_ROOT.tmp:STREAM_NEXT.cmd:PAROR.two:AWAIT,
+        _ceu_out_assert(cmds:STREAM_ROOT.tmp:STREAM_ITEM.cmd:PAROR.two:AWAIT,
                         "out of memory");
-        cmds:STREAM_ROOT.tmp:STREAM_NEXT.prv = cmds:STREAM_ROOT.nxt:STREAM_NEXT.prv;
-        cmds:STREAM_ROOT.nxt = cmds:STREAM_ROOT.tmp;
+        cmds:STREAM_ROOT.tmp:STREAM_ITEM.prv = cmds:STREAM_ROOT.queue:STREAM_ITEM.prv;
+        cmds:STREAM_ROOT.queue = cmds:STREAM_ROOT.tmp;
 
-        cmds:STREAM_ROOT.tmp = new Command.STREAM_NEXT(
+        cmds:STREAM_ROOT.tmp = new Command.STREAM_ITEM(
                                     Command.NOTHING(),
                                     DO1SEC(Command.MOVE(100)));
-        _ceu_out_assert(cmds:STREAM_ROOT.tmp:STREAM_NEXT.cmd:PAROR.two:AWAIT,
+        _ceu_out_assert(cmds:STREAM_ROOT.tmp:STREAM_ITEM.cmd:PAROR.two:AWAIT,
                         "out of memory");
-        cmds:STREAM_ROOT.tmp:STREAM_NEXT.prv = cmds:STREAM_ROOT.nxt:STREAM_NEXT.prv;
-        cmds:STREAM_ROOT.nxt = cmds:STREAM_ROOT.tmp;
+        cmds:STREAM_ROOT.tmp:STREAM_ITEM.prv = cmds:STREAM_ROOT.queue:STREAM_ITEM.prv;
+        cmds:STREAM_ROOT.queue = cmds:STREAM_ROOT.tmp;
     end
 #endif
 with
@@ -289,29 +289,29 @@ with
 
         // MOVE
         else/if _strcmp(cmd,"move") == 0 then
-            cmds:STREAM_ROOT.tmp = new Command.STREAM_NEXT(
+            cmds:STREAM_ROOT.tmp = new Command.STREAM_ITEM(
                                         Command.NOTHING(),
                                         Command.PAROR(
                                             Command.MOVE(vel),
                                             Command.AWAIT(time)));
-            _ceu_out_assert(cmds:STREAM_ROOT.tmp:STREAM_NEXT.cmd:PAROR.two:AWAIT,
+            _ceu_out_assert(cmds:STREAM_ROOT.tmp:STREAM_ITEM.cmd:PAROR.two:AWAIT,
                             "out of memory");
-            cmds:STREAM_ROOT.tmp:STREAM_NEXT.prv = 
-                cmds:STREAM_ROOT.nxt:STREAM_NEXT.prv;
-            cmds:STREAM_ROOT.nxt = cmds:STREAM_ROOT.tmp;
+            cmds:STREAM_ROOT.tmp:STREAM_ITEM.prv = 
+                cmds:STREAM_ROOT.queue:STREAM_ITEM.prv;
+            cmds:STREAM_ROOT.queue = cmds:STREAM_ROOT.tmp;
 
         // ROTATE
         else/if _strcmp(cmd,"rotate") == 0 then
-            cmds:STREAM_ROOT.tmp = new Command.STREAM_NEXT(
+            cmds:STREAM_ROOT.tmp = new Command.STREAM_ITEM(
                                         Command.NOTHING(),
                                         Command.PAROR(
                                             Command.ROTATE(vel),
                                             Command.AWAIT(time)));
-            _ceu_out_assert(cmds:STREAM_ROOT.tmp:STREAM_NEXT.cmd:PAROR.two:AWAIT,
+            _ceu_out_assert(cmds:STREAM_ROOT.tmp:STREAM_ITEM.cmd:PAROR.two:AWAIT,
                             "out of memory");
-            cmds:STREAM_ROOT.tmp:STREAM_NEXT.prv = 
-                cmds:STREAM_ROOT.nxt:STREAM_NEXT.prv;
-            cmds:STREAM_ROOT.nxt = cmds:STREAM_ROOT.tmp;
+            cmds:STREAM_ROOT.tmp:STREAM_ITEM.prv = 
+                cmds:STREAM_ROOT.queue:STREAM_ITEM.prv;
+            cmds:STREAM_ROOT.queue = cmds:STREAM_ROOT.tmp;
         end
     end
 with
