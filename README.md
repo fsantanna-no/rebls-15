@@ -61,3 +61,5 @@ well as the domain applications in the languages.
 * <http://www.gamasutra.com/view/feature/130663/gdc_2005_proceeding_handling_.php>
 * <http://web.cs.wpi.edu/~rich/courses/imgd4000-d09/lectures/halo3.pdf>
 * <http://chrishecker.com/My_liner_notes_for_spore/Spore_Behavior_Tree_Docs>
+* <https://docs.unrealengine.com/latest/INT/Engine/AI/BehaviorTrees/NodeReference/index.html>
+* <https://docs.unrealengine.com/latest/INT/Engine/AI/BehaviorTrees/HowUE4BehaviorTreesDiffer/index.html>
