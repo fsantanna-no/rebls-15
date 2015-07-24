@@ -176,11 +176,7 @@ occurring event awake and execute, one after the other, until they await again
 or terminate.
 %
 During a reaction, the environment is invariant and does not interrupt the 
-running trails%
-\footnote{
-The actual implementation enqueues incoming input events to process them in 
-further reactions.
-}.
+running trails.
 If multiple trails react to the same event, the scheduler employs lexical 
 order, i.e., the trail that appears first in the source code executes first.
 %
@@ -443,10 +439,7 @@ do
    traverse e in l do
       if e:CONS then
          var Action*? a =
-            spawn Action in actions with
-               this.e    = e;
-               action.acc = acc;
-            end
+            spawn Action(e, acc);
          await *a;
       end
    end
@@ -501,6 +494,112 @@ Ceu's parallel features make implementing a parallel combinator for behavior tre
 
 ...
 
+\subsection{TODO: Standard Behavior Tree}
+
+COMMENTS:
+
+Most "standard" BTs I found have these "sequence" and "selector" composite 
+nodes.
+I thought about starting with this one and maybe expanding it with a 
+"parallel/or" further.
+
+Two things to discuss:
+(1) how the implementation of the interpreter is straightforward;
+(2) that leaf nodes are not restricted to a "tick" callback and can actually 
+execute arbitrary code in \CEU.
+
+\begin{figure}%[t]
+\begin{lstlisting}[numbers=left,xleftmargin=3em]
+data BTree with
+   tag NIL;
+or
+   tag SEQ with
+      var BTree* first;
+      var BTree* second;
+   end
+or
+   tag SEL with
+      var BTree* first;
+      var BTree* second;
+   end
+or
+   tag LEAF with
+      var Leaf leaf;
+   end
+end
+
+\end{lstlisting}
+%\rule{8.5cm}{0.37pt}
+\caption{ A standard behavior tree with \emph{sequence} and \emph{selector}
+          composite nodes.
+\label{lst.bt1}
+}
+\end{figure}
+
+\begin{figure}%[t]
+\begin{lstlisting}[numbers=left,xleftmargin=3em]
+class BTreeInterpreter with
+   pool BTree[]& btree;
+do
+   var int ret =
+      traverse t in btree do
+         if t:SEQ then
+            var int ret1 = traverse t:SEQ.first;
+            if ret1 > 0 then
+               var int ret2 = traverse t:SEQ.second;
+               if ret2 > 0 then
+                  escape ret1+ret2;
+               end
+            end
+            escape 0;
+         else/if t:SEL then
+            var int ret = traverse t:SEQ.first;
+            if ret == 0 then
+               ret = traverse t:SEL.second;
+            end
+            escape ret;
+         else/if t:LEAF then
+            var int ret =
+                do LeafHandler(t:LEAF.leaf);
+            escape ret;
+         end
+      end;
+   escape ret;
+end
+
+pool BTree[] btree = new
+   BTree.SEQ(
+      BTree.SEL(
+         BTree.LEAF(Leaf(0)),
+         BTree.LEAF(Leaf(1))),
+      BTree.LEAF(Leaf(2)));
+
+var int ret = do BTreeTraverse(btree);
+
+_printf("ret = %d\n", ret);     // prints "3"
+\end{lstlisting}
+%\rule{8.5cm}{0.37pt}
+\caption{ A straightforward interpreter for the standard behavior tree of 
+          Figure~\ref{lst.bt1} and a sample tree to execute.
+\label{lst.bt1.interpreter}
+}
+\end{figure}
+
+\begin{figure}%[t]
+\begin{lstlisting}[numbers=left,xleftmargin=3em]
+class LeafHandler with
+   var Leaf& leaf;
+do
+   // TODO: what to show here?
+   escape leaf.v;
+end
+\end{lstlisting}
+%\rule{8.5cm}{0.37pt}
+\caption{ A leaf node with complex behavior.
+\label{lst.bt1.leaf}
+}
+\end{figure}
+
 \subsubsection{Logo Turtle}
 
 ...
@@ -508,34 +607,34 @@ Ceu's parallel features make implementing a parallel combinator for behavior tre
 \begin{figure}%[t]
 \begin{lstlisting}[numbers=left,xleftmargin=3em]
 data Command with
-    tag NOTHING;
+   tag NOTHING;
 or
-    tag ROTATE with
-        var int angle;
-    end
+   tag ROTATE with
+      var int angle;
+   end
 or
-    tag MOVE with
-        var int pixels;
-    end
+   tag MOVE with
+      var int pixels;
+   end
 or
-    tag AWAIT with
-        var int ms;
-    end
+   tag AWAIT with
+      var int ms;
+   end
 or
-    tag SEQUENCE with
-        var Command* one;
-        var Command* two;
-    end
+   tag SEQ with
+      var Command* one;
+      var Command* two;
+   end
 or
-    tag REPEAT with
-        var int      times;
-        var Command* command;
-    end
+   tag REPEAT with
+      var int     times;
+      var Command* command;
+   end
 or
-    tag PAROR with
-        var Command* one;
-        var Command* two;
-    end
+   tag PAROR with
+      var Command* one;
+      var Command* two;
+   end
 end
 \end{lstlisting}
 %\rule{8.5cm}{0.37pt}
@@ -547,44 +646,40 @@ end
 \begin{figure}%[t]
 \begin{lstlisting}[numbers=left,xleftmargin=3em]
 class Interpreter with
-    pool Command[]& cmds;
-    var  Turtle&    turtle;
+   pool Command[]& cmds;
+   var  Turtle&   turtle;
 do
-    traverse cmd in cmds do
-        watching cmd do
-            if cmd:AWAIT then
-                await (cmd:AWAIT.ms) ms;
+   traverse cmd in cmds do
+      watching cmd do
+         if cmd:AWAIT then
+            await (cmd:AWAIT.ms) ms;
 
-            else/if cmd:ROTATE then
-                do TurtleRotate with
-                    this.turtle = turtle;
-                    this.angle  = cmd:ROTATE.angle;
-                end;
+         else/if cmd:ROTATE then
+            do TurtleRotate(turtle,
+                            cmd:ROTATE.angle);
 
-            else/if cmd:MOVE then
-                do TurtleMove with
-                    this.turtle  = turtle;
-                    this.pixels = cmd:MOVE.pixels;
-                end;
+         else/if cmd:MOVE then
+            do TurtleMove(turtle,
+                          cmd:MOVE.pixels);
 
-            else/if cmd:PAROR then
-                par/or do
-                    traverse cmd:PAROR.one;
-                with
-                    traverse cmd:PAROR.two;
-                end
-
-            else/if cmd:SEQUENCE then
-                traverse cmd:SEQUENCE.one;
-                traverse cmd:SEQUENCE.two;
-
-            else/if cmd:REPEAT then
-                loop i in cmd:REPEAT.times do
-                    traverse cmd:REPEAT.command;
-                end
+         else/if cmd:PAROR then
+            par/or do
+               traverse cmd:PAROR.one;
+            with
+               traverse cmd:PAROR.two;
             end
-        end
-    end
+
+         else/if cmd:SEQ then
+            traverse cmd:SEQ.one;
+            traverse cmd:SEQ.two;
+
+         else/if cmd:REPEAT then
+            loop i in cmd:REPEAT.times do
+               traverse cmd:REPEAT.command;
+            end
+         end
+      end
+   end
 end
 \end{lstlisting}
 %\rule{8.5cm}{0.37pt}
@@ -600,6 +695,12 @@ end
 \section{Conclusion}
 
 ...
+
+Limitations:
+
+- high-order programming
+
+- planar-only recursive data types
 
 \bibliographystyle{abbrv}
 \bibliography{rebls-15}
