@@ -176,11 +176,7 @@ occurring event awake and execute, one after the other, until they await again
 or terminate.
 %
 During a reaction, the environment is invariant and does not interrupt the 
-running trails%
-\footnote{
-The actual implementation enqueues incoming input events to process them in 
-further reactions.
-}.
+running trails.
 If multiple trails react to the same event, the scheduler employs lexical 
 order, i.e., the trail that appears first in the source code executes first.
 %
@@ -690,6 +686,12 @@ end
 \section{Conclusion}
 
 ...
+
+Limitations:
+
+- high-order programming
+
+- planar-only recursive data types
 
 \bibliographystyle{abbrv}
 \bibliography{rebls-15}
