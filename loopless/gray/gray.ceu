@@ -46,7 +46,6 @@ par/or do
 with
     traverse d in ds with
         var int idx = 0;
-        var bool reversed = false;
     do
         if idx == tot then
             await NEXT;
