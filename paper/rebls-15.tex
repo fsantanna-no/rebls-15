@@ -418,10 +418,7 @@ do
    traverse e in l do
       if e:CONS then
          var Action*? a =
-            spawn Action in actions with
-               this.e    = e;
-               action.acc = acc;
-            end
+            spawn Action(e, acc);
          await *a;
       end
    end
@@ -541,10 +538,7 @@ do
             end
             escape ret;
          else/if t:LEAF then
-            var int ret =
-               do LeafHandler with
-                  this.leaf = t:LEAF.leaf;
-               end;
+            var int ret = do LeafHandler(t:LEAF.leaf);
             escape ret;
          end
       end;
@@ -558,10 +552,7 @@ pool BTree[] btree = new
             BTree.LEAF(Leaf(1))),
         BTree.LEAF(Leaf(2)));
 
-var int ret =
-   do BTreeTraverse with
-      this.btree = btree;
-   end;
+var int ret = do BTreeTraverse(btree);
 
 _printf("ret = %d\n", ret);     // prints "3"
 \end{lstlisting}
@@ -642,16 +633,10 @@ do
                 await (cmd:AWAIT.ms) ms;
 
             else/if cmd:ROTATE then
-                do TurtleRotate with
-                    this.turtle = turtle;
-                    this.angle  = cmd:ROTATE.angle;
-                end;
+                do TurtleRotate(turtle, cmd:ROTATE.angle);
 
             else/if cmd:MOVE then
-                do TurtleMove with
-                    this.turtle  = turtle;
-                    this.pixels = cmd:MOVE.pixels;
-                end;
+                do TurtleMove(turtle, cmd:MOVE.pixels);
 
             else/if cmd:PAROR then
                 par/or do
