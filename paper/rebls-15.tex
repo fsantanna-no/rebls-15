@@ -455,23 +455,27 @@ Calculating the \emph{sum} of a list.
 
 \section{Applications}
 
-incremental computation, behavior trees, control-dominated DSLs
-
-...
-
-\subsection{Incremental Computation}
-
-...
+How many applications will we present?
 
 \begin{itemize}
-\item gray binary generation?
+    \item behavior trees (DSL)
+    \item logo turtle (DSL)
+    \item turtle stream (incremental)
+    \item gray binary gen (incremental)
 \end{itemize}
+
+I suggest gray binary as the last one because it does not use a data type.
+We could show as an example of flexibility of traverse.
+BTs before turtle because they are simpler and because the stream example is 
+the most complex and should follow the logo turtle.
 
 ...
 
-\subsection{Domain Specific Languages}
+TODO: small discussion incremental / DSLs and then proceed to each example?
 
-\subsubsection{Behavior Trees}
+...
+
+\subsection{Behavior Trees}
 
 The term ``Behavior Trees'' denotes a family of DSLs 
 used for Game AI.
@@ -494,7 +498,7 @@ Ceu's parallel features make implementing a parallel combinator for behavior tre
 
 ...
 
-\subsection{TODO: Standard Behavior Tree}
+\subsubsection{TODO: Standard Behavior Tree}
 
 COMMENTS:
 
@@ -600,7 +604,9 @@ end
 }
 \end{figure}
 
-\subsubsection{Logo Turtle}
+\subsubsection{Parallel Behavior Tree}
+
+\subsection{Logo Turtle}
 
 ...
 
@@ -687,6 +693,51 @@ end
 \label{lst.turtle.interpreter}
 }
 \end{figure}
+
+\subsubsection{Command Streaming}
+
+\subsection{Gray Binary Generation}
+
+\begin{figure}%[t]
+\begin{lstlisting}[numbers=left,xleftmargin=3em]
+var int tot = 4;
+var int[] vec = [0, 0, 0, 0];
+
+par/or do
+    every VISIT do
+        _printf("( ");
+        loop i in tot do
+            _printf("%d ", vec[i]);
+        end
+        _printf(")\n");
+    end
+with
+    /*
+     * Syntax invented for numeric/non-data
+     * traversals (not implemented):
+     *  - starts from idx=0
+     *  - memory for at most [N] elements,
+     *    or [] unbounded.
+     *  - recursive calls receive the next idx
+     */
+    traverse idx in [] do
+        if idx == tot then
+            await NEXT;
+        else
+            traverse idx + 1;
+            vec[idx] = 1 - vec[idx];
+            traverse idx + 1;
+        end
+    end
+end
+\end{lstlisting}
+%\rule{8.5cm}{0.37pt}
+\caption{ Gray binary generation for tuples of size 4.
+\label{lst.gray}
+}
+\end{figure}
+
+
 
 \section{Related Work}
 
