@@ -176,11 +176,7 @@ occurring event awake and execute, one after the other, until they await again
 or terminate.
 %
 During a reaction, the environment is invariant and does not interrupt the 
-running trails%
-\footnote{
-The actual implementation enqueues incoming input events to process them in 
-further reactions.
-}.
+running trails.
 If multiple trails react to the same event, the scheduler employs lexical 
 order, i.e., the trail that appears first in the source code executes first.
 %
@@ -199,8 +195,8 @@ or a tagged union. A tagged union consists of a set of tag declarations, each
 of which may be a bare tag or contain mutable fields. If any of the tag
 declarations refers to the data type being declared, we have a recursive data
 type. In this case, the first tag of the tagged union must be a bare tag, and
-it will act as the union's null type: in \CEU, every tagged union is an option
-type.
+it will act as the union's null type: in \CEU, every recursive data type
+is an option type.
 
 %%% (Uncomment \input bnf.tex above)
 %\begin{figure}[t]
@@ -302,9 +298,9 @@ its elements.
 
 %TODO: invalid tag generates runtime error
 
-Data types in \CEU have a number of restrictions.
+In \CEU, recursive data types have a number of restrictions.
 Given that mutations deallocate whole subtrees, data types cannot represent 
-general graphs (in particular, they cannot contain cycles).
+general graphs: they must represent tree-like structures.
 Elements in different pools cannot be mixed;
 and pointers to subtrees (i.e., weak references) must be observed via the
 \code{watching} construct, as they can be invalidated at any time
@@ -322,10 +318,10 @@ It also preserves explicit lexical scopes with static memory management.
 % rebls-15/list/list.ceu
 \begin{figure}%[t]
 \begin{lstlisting}[numbers=left,xleftmargin=3em]
-pool List[] l = new List.CONS(1,
-                     List.CONS(2,
-                      List.CONS(3,
-                       List.NIL())));
+pool List[3] l = new List.CONS(1,
+                      List.CONS(2,
+                       List.CONS(3,
+                        List.NIL())));
 
 var int sum =
    traverse e in l do
@@ -345,7 +341,8 @@ Calculating the \emph{sum} of a list.
 }
 \end{figure}
 
-The example in Figure~\ref{lst.sum} creates a list (lines 1--4) and traverses 
+We begin by showing the flavor of the construct through an example.
+The code in Figure~\ref{lst.sum} creates a list (lines 1--4) and traverses 
 it to calculate the sum of elements (lines 6--15).
 The \code{traverse} block (line 7) starts with the element \code{e} pointing to 
 the root of the list \code{l}.
@@ -356,8 +353,8 @@ A \code{CONS} list needs to calculate the \code{sum} of its tail recursively,
 invoking \code{traverse} again (line 11), which will create a nested instance 
 of the enclosing \code{traverse} block (lines 7--14), now with \code{e} 
 pointing to the \code{e:CONS.tail}.
-Without nested control mechanisms, \code{traverse} is just syntactic sugar for 
-anonymous closures called recursively.
+When used without event control mechanisms, as in this simple example,
+a \code{traverse} block is equivalent to an anonymous closure called recursively.
 
 % rebls-15/list/react.ceu
 \begin{figure}%[t]
@@ -387,26 +384,46 @@ Calculating the \emph{sum} of a list, one element each second.
 \end{figure}
 % TODO: react.ceu with mutation
 
-To distinguish \code{traverse} from standard recursive functions, 
-Figure~\ref{lst.sum.react} extends the body of the previous example with 
-reactive behavior.
-For each recursive iteration, the \code{traverse} prints the current 
+The \code{traverse} construct does not simply amount to an anonymous recursive
+block, however. It is designed to take into account the event system and
+memory management discipline of the language. As such, it is an abstraction
+defined in terms of more fundamental \CEU features: \emph{organisms}, which
+are objects with their own parallel trail of execution, akin to Simula
+objects; and orthogonal abortion, which handles cancellation of trails
+maintaining memory consistency~\cite{ceu.mod15}.
+
+Three aspects make \code{traverse} fundamentally different from an anonymous
+recursive function. First, each \code{traverse} call spawns a new anonymous
+organism, launching a new parallel trail of execution (as opposed to stacking
+a new frame in the current trail). Second, traversal is declared in terms of a
+specific memory pool. Therefore, for bounded pools (e.g., \code{List[3] l}),
+we can infer at compile time the maximum traversal depth. Third, the execution
+body of a \code{traverse} block is implicitly wrapped by a concurrency
+construct that watches for mutations of the current node. In practice, this
+means that it reacts consistently if another trail of execution modifies the
+data structure being traversed.
+
+To illustrate these differences, Figure~\ref{lst.sum.react} extends the body
+of the previous example with reactive behavior.
+For each recursive iteration, \code{traverse} prints the current 
 \code{head} (line 8) and awaits 1 second before traversing the \code{tail} 
 (lines 9--10).
 In \CEU, all accesses to pointers that cross \code{await} statements must be 
 protected with \code{watching} blocks~\cite{ceu.mod15}.
 This ensures that if side effects occurring in parallel affect the pointed 
-object, no harming code executes because the whole block is aborted.
+object, no code uses stale pointers because the whole block is aborted.
 In the example (lines 7--12), if the list is mutated during that 1 second and 
 the specific element is removed from memory, we simply ignore the whole subtree 
 and return 0.
 
-Note that for bounded pools (e.g., \code{List[3] l}), we can infer at compile 
-time the maximum number of ``stack frames'' required for \code{traverse}.
-In addition, we can also enforce bounded execution time by asserting that the 
-structure of the recursive steps converge to the base cases.
-This is an important requirement for constrained and real-time embedded 
-systems, which is the original application domain of \CEU~\cite{ceu.sensys13}.
+The \code{traverse} construct allows us to enforce bounded execution time, by
+performing a limited number of steps, each of them a separate synchronous
+reaction. This can be asserted by verifying that the structure of the
+recursive steps converge to the base cases, or simply by using a bounded
+memory pools, which allows us to limit the maximum number of steps to the size
+of the pool. Enforcing execution limits is an important requirement for
+constrained and real-time embedded systems, which is the original application
+domain of \CEU~\cite{ceu.sensys13}.
 
 % TODO: abstract fold example?
 % TODO: or mention that is not the focus here
@@ -422,10 +439,7 @@ do
    traverse e in l do
       if e:CONS then
          var Action*? a =
-            spawn Action in actions with
-               this.e    = e;
-               action.acc = acc;
-            end
+            spawn Action(e, acc);
          await *a;
       end
    end
@@ -480,6 +494,112 @@ Ceu's parallel features make implementing a parallel combinator for behavior tre
 
 ...
 
+\subsection{TODO: Standard Behavior Tree}
+
+COMMENTS:
+
+Most "standard" BTs I found have these "sequence" and "selector" composite 
+nodes.
+I thought about starting with this one and maybe expanding it with a 
+"parallel/or" further.
+
+Two things to discuss:
+(1) how the implementation of the interpreter is straightforward;
+(2) that leaf nodes are not restricted to a "tick" callback and can actually 
+execute arbitrary code in \CEU.
+
+\begin{figure}%[t]
+\begin{lstlisting}[numbers=left,xleftmargin=3em]
+data BTree with
+   tag NIL;
+or
+   tag SEQ with
+      var BTree* first;
+      var BTree* second;
+   end
+or
+   tag SEL with
+      var BTree* first;
+      var BTree* second;
+   end
+or
+   tag LEAF with
+      var Leaf leaf;
+   end
+end
+
+\end{lstlisting}
+%\rule{8.5cm}{0.37pt}
+\caption{ A standard behavior tree with \emph{sequence} and \emph{selector}
+          composite nodes.
+\label{lst.bt1}
+}
+\end{figure}
+
+\begin{figure}%[t]
+\begin{lstlisting}[numbers=left,xleftmargin=3em]
+class BTreeInterpreter with
+   pool BTree[]& btree;
+do
+   var int ret =
+      traverse t in btree do
+         if t:SEQ then
+            var int ret1 = traverse t:SEQ.first;
+            if ret1 > 0 then
+               var int ret2 = traverse t:SEQ.second;
+               if ret2 > 0 then
+                  escape ret1+ret2;
+               end
+            end
+            escape 0;
+         else/if t:SEL then
+            var int ret = traverse t:SEQ.first;
+            if ret == 0 then
+               ret = traverse t:SEL.second;
+            end
+            escape ret;
+         else/if t:LEAF then
+            var int ret =
+                do LeafHandler(t:LEAF.leaf);
+            escape ret;
+         end
+      end;
+   escape ret;
+end
+
+pool BTree[] btree = new
+   BTree.SEQ(
+      BTree.SEL(
+         BTree.LEAF(Leaf(0)),
+         BTree.LEAF(Leaf(1))),
+      BTree.LEAF(Leaf(2)));
+
+var int ret = do BTreeTraverse(btree);
+
+_printf("ret = %d\n", ret);     // prints "3"
+\end{lstlisting}
+%\rule{8.5cm}{0.37pt}
+\caption{ A straightforward interpreter for the standard behavior tree of 
+          Figure~\ref{lst.bt1} and a sample tree to execute.
+\label{lst.bt1.interpreter}
+}
+\end{figure}
+
+\begin{figure}%[t]
+\begin{lstlisting}[numbers=left,xleftmargin=3em]
+class LeafHandler with
+   var Leaf& leaf;
+do
+   // TODO: what to show here?
+   escape leaf.v;
+end
+\end{lstlisting}
+%\rule{8.5cm}{0.37pt}
+\caption{ A leaf node with complex behavior.
+\label{lst.bt1.leaf}
+}
+\end{figure}
+
 \subsubsection{Logo Turtle}
 
 ...
@@ -487,34 +607,34 @@ Ceu's parallel features make implementing a parallel combinator for behavior tre
 \begin{figure}%[t]
 \begin{lstlisting}[numbers=left,xleftmargin=3em]
 data Command with
-    tag NOTHING;
+   tag NOTHING;
 or
-    tag ROTATE with
-        var int angle;
-    end
+   tag ROTATE with
+      var int angle;
+   end
 or
-    tag MOVE with
-        var int pixels;
-    end
+   tag MOVE with
+      var int pixels;
+   end
 or
-    tag AWAIT with
-        var int ms;
-    end
+   tag AWAIT with
+      var int ms;
+   end
 or
-    tag SEQUENCE with
-        var Command* one;
-        var Command* two;
-    end
+   tag SEQ with
+      var Command* one;
+      var Command* two;
+   end
 or
-    tag REPEAT with
-        var int      times;
-        var Command* command;
-    end
+   tag REPEAT with
+      var int     times;
+      var Command* command;
+   end
 or
-    tag PAROR with
-        var Command* one;
-        var Command* two;
-    end
+   tag PAROR with
+      var Command* one;
+      var Command* two;
+   end
 end
 \end{lstlisting}
 %\rule{8.5cm}{0.37pt}
@@ -526,44 +646,40 @@ end
 \begin{figure}%[t]
 \begin{lstlisting}[numbers=left,xleftmargin=3em]
 class Interpreter with
-    pool Command[]& cmds;
-    var  Turtle&    turtle;
+   pool Command[]& cmds;
+   var  Turtle&   turtle;
 do
-    traverse cmd in cmds do
-        watching cmd do
-            if cmd:AWAIT then
-                await (cmd:AWAIT.ms) ms;
+   traverse cmd in cmds do
+      watching cmd do
+         if cmd:AWAIT then
+            await (cmd:AWAIT.ms) ms;
 
-            else/if cmd:ROTATE then
-                do TurtleRotate with
-                    this.turtle = turtle;
-                    this.angle  = cmd:ROTATE.angle;
-                end;
+         else/if cmd:ROTATE then
+            do TurtleRotate(turtle,
+                            cmd:ROTATE.angle);
 
-            else/if cmd:MOVE then
-                do TurtleMove with
-                    this.turtle  = turtle;
-                    this.pixels = cmd:MOVE.pixels;
-                end;
+         else/if cmd:MOVE then
+            do TurtleMove(turtle,
+                          cmd:MOVE.pixels);
 
-            else/if cmd:PAROR then
-                par/or do
-                    traverse cmd:PAROR.one;
-                with
-                    traverse cmd:PAROR.two;
-                end
-
-            else/if cmd:SEQUENCE then
-                traverse cmd:SEQUENCE.one;
-                traverse cmd:SEQUENCE.two;
-
-            else/if cmd:REPEAT then
-                loop i in cmd:REPEAT.times do
-                    traverse cmd:REPEAT.command;
-                end
+         else/if cmd:PAROR then
+            par/or do
+               traverse cmd:PAROR.one;
+            with
+               traverse cmd:PAROR.two;
             end
-        end
-    end
+
+         else/if cmd:SEQ then
+            traverse cmd:SEQ.one;
+            traverse cmd:SEQ.two;
+
+         else/if cmd:REPEAT then
+            loop i in cmd:REPEAT.times do
+               traverse cmd:REPEAT.command;
+            end
+         end
+      end
+   end
 end
 \end{lstlisting}
 %\rule{8.5cm}{0.37pt}
@@ -579,6 +695,12 @@ end
 \section{Conclusion}
 
 ...
+
+Limitations:
+
+- high-order programming
+
+- planar-only recursive data types
 
 \bibliographystyle{abbrv}
 \bibliography{rebls-15}
