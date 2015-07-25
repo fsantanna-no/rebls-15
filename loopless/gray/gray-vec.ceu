@@ -1,0 +1,63 @@
+native do
+  #include <assert.h>
+end
+
+input void VISIT;
+input void NEXT;
+
+/////////////////////////////
+// THIS SHOULDN'T BE REQUIRED
+data Dummy with
+  tag NIL;
+or
+  tag REC with
+    var Dummy* rec;
+  end
+end
+pool Dummy[] ds = new Dummy.REC(Dummy.NIL());
+/////////////////////////////
+
+// native @nohold _scanf();
+// _printf("Size of tuples: ");
+// _scanf("%d", &tot);
+
+var int tot = 4;
+var int[] vec = [0, 0, 0, 0];
+
+par/or do
+    every VISIT do
+        _printf("( ");
+        loop i in tot do
+            _printf("%d ", vec[i]);
+        end
+        _printf(")\n");
+    end
+with
+    traverse d in ds with
+        var int idx = 0;
+        var bool reversed = false; // TODO: what is this?
+    do
+        watching d do
+            if idx == tot then
+                await NEXT;
+            else
+                traverse d with
+                    this.idx = idx + 1;
+                end;
+                vec[idx] = 1 - vec[idx];
+                traverse d with
+                    this.idx = idx + 1;
+                end;
+             end
+        end
+    end
+with
+    loop do
+        async do
+            emit VISIT;
+            emit NEXT;
+        end
+    end
+end
+
+escape 0;
