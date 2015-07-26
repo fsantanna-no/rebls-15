@@ -85,9 +85,9 @@ frames alive.
 of its concurrency functionality and safety properties, such as parallel 
 compositions with orthogonal abortion, static memory management, and bounded 
 reaction time and memory usage.
-We present two application scenarios that take advantage of recursive and 
-reactive behavior: incremental computation and control-oriented domain specific 
-languages.
+We discuss three applications in the domains of incremental computation and 
+control-oriented DSLs that contain reactive and recursive behavior at the same 
+time.
 
 \begin{comment}
 MIX OF:
@@ -113,7 +113,7 @@ DESIGNED FOR \CEU:
 \terms{Design, Languages}
 
 \keywords{Behavior Trees, Domain Specific Languages, Incremental Computation, 
-Logo, Structured Programming}
+Logo, Recursive Data Types, Structured Programming, Reactive Programming}
 
 \section{Introduction}
 
@@ -135,16 +135,16 @@ Logo, Structured Programming}
 
 \begin{figure}%[t]
 \begin{lstlisting}[numbers=left,xleftmargin=3em]
-input void RESET;   // declares an external event
+input void RESET;  // declares an external event
 var int v = 0;     // variable shared by the trails
 par do
-   loop do       // 1st trail
+   loop do         // 1st trail
       await 1s;
       v = v + 1;
       _printf("v = %d\n", v);
    end
 with
-   loop do       // 2nd trail
+   loop do         // 2nd trail
       await RESET;
       v = 0;
    end
@@ -455,62 +455,53 @@ Calculating the \emph{sum} of a list.
 
 \section{Applications}
 
+In this section, we present three applications that explore the reactive and 
+incremental nature of the \code{traverse} construct.
+We start with standard \emph{Behavior Trees} used in video games for AI 
+modeling~\cite{TODO}, and extend them with parallel compositions.
+Then, we show a \emph{Logo Turtle}~\cite{TODO} that can execute commands in 
+parallel (e.g., \code{move} and \code{rotate}) and also incorporates a dynamic 
+queue of commands issued concurrently with the running program.
+Finally, we implement \emph{Gray code} generation~\cite{TODO} to illustrate how 
+\code{traverse} can also be used for more general recursive algorithms without 
+an associated data type.
+
+\begin{quotation}
 How many applications will we present?
 
 \begin{itemize}
     \item behavior trees (DSL)
     \item logo turtle (DSL)
     \item turtle stream (incremental)
-    \item gray binary gen (incremental)
+    \item gray code gen (incremental)
 \end{itemize}
 
-I suggest gray binary as the last one because it does not use a data type.
+I suggest gray code as the last one because it does not use a data type.
 We could show as an example of flexibility of traverse.
 BTs before turtle because they are simpler and because the stream example is 
 the most complex and should follow the logo turtle.
-
-...
-
-TODO: small discussion incremental / DSLs and then proceed to each example?
-
-...
+\end{quotation}
 
 \subsection{Behavior Trees}
 
-The term ``Behavior Trees'' denotes a family of DSLs 
-used for Game AI.
+The term \emph{Behavior Trees} denotes a family of DSLs used for Game 
+AI~\cite{TODO}.
 The term is loose, because different games use different languages,
 but generally it indicates an interpreted domain-specific language
 for creature behavior that includes at least sequence and selection combinators,
-and which are ``ticked'' periodically.
+and which are ``ticked'' periodically~\cite{TODO}.
+
+%\subsubsection{A Standard Behavior Tree}
 
 The semantics of the sequence combinator can be understood as short-circuit evaluation of a conjunction;
-the Seq node ticks its left subtree until it finishes,
+the \code{SEQ} node ticks its left subtree until it finishes,
 and if it finishes successfully, ticks its right subtree until it finishes.
 The semantics of the selection combinator can be understood as short-circuit evaluation of an alternation;
-the Sel node ticks its left subtree until it finishes,
+the \code{SEL} node ticks its left subtree until it finishes,
 and if it did not finish successfully, ticks its right subtree until it finishes.
 
 This skeleton, augmented with leaves that test properties, set properties, perform animations and sounds,
 and other custom combinators, can be preferable to finite state machines (hierarchical, augmented, or otherwise) for authoring Game AI.
-
-Ceu's parallel features make implementing a parallel combinator for behavior trees much easier.
-
-...
-
-\subsubsection{TODO: Standard Behavior Tree}
-
-COMMENTS:
-
-Most "standard" BTs I found have these "sequence" and "selector" composite 
-nodes.
-I thought about starting with this one and maybe expanding it with a 
-"parallel/or" further.
-
-Two things to discuss:
-(1) how the implementation of the interpreter is straightforward;
-(2) that leaf nodes are not restricted to a "tick" callback and can actually 
-execute arbitrary code in \CEU.
 
 \begin{figure}%[t]
 \begin{lstlisting}[numbers=left,xleftmargin=3em]
@@ -604,7 +595,23 @@ end
 }
 \end{figure}
 
-\subsubsection{Parallel Behavior Tree}
+%\subsubsection{Parallel Behavior Tree}
+
+Ceu's parallel features make implementing a parallel combinator for behavior 
+trees much easier.
+
+\begin{quotation}
+Most "standard" BTs I found have these "sequence" and "selector" composite 
+nodes.
+I thought about starting with this one and maybe expanding it with a 
+"parallel/or" further.
+
+Two things to discuss:
+(1) how the implementation of the interpreter is straightforward;
+(2) that leaf nodes are not restricted to a "tick" callback and can actually 
+execute arbitrary code in \CEU.
+\end{quotation}
+
 
 \subsection{Logo Turtle}
 
@@ -641,6 +648,29 @@ along a semicircle:
          Command.MOVE(50),
          Command.ROTATE(180)))
 \end{verbatim}
+
+\begin{comment}
+The turtle has three attributes:
+
+    a location
+    an orientation
+    a pen, itself having attributes such as color, width, and up versus down.
+
+The turtle moves with commands that are relative to its own position, such as 
+"move forward 10 spaces" and "turn left 90 degrees". The pen carried by the 
+turtle can also be controlled, by enabling it, setting its color, or setting 
+its width. A student could understand (and predict and reason about) the 
+turtle's motion by imagining what they would do if they were the turtle.  
+Seymour Papert called this "body syntonic" reasoning.
+
+From these building blocks one can build more complex shapes like squares, 
+triangles, circles and other composite figures. Combined with control flow, 
+procedures, and recursion, the idea of turtle graphics is also useful in a 
+Lindenmayer system for generating fractals.
+
+Turtle geometry is also sometimes used in graphics environments as an 
+alternative to a strictly coordinate-addressed graphics system.
+\end{comment}
 
 \begin{figure}%[t]
 \begin{lstlisting}[numbers=left,xleftmargin=3em]
@@ -758,9 +788,9 @@ end
 }
 \end{figure}
 
-\subsubsection{Command Streaming}
+%\subsubsection{Enqueuing Commands}
 
-\subsection{Gray Binary Generation}
+\subsection{Gray Code Generation}
 
 \begin{figure}%[t]
 \begin{lstlisting}[numbers=left,xleftmargin=3em]
@@ -796,7 +826,7 @@ with
 end
 \end{lstlisting}
 %\rule{8.5cm}{0.37pt}
-\caption{ Gray binary generation for tuples of size 4.
+\caption{ Gray code generation for tuples of size 4.
 \label{lst.gray}
 }
 \end{figure}
