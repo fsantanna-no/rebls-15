@@ -750,7 +750,7 @@ is mutated by code running in another trail.
 \begin{figure}%[t]
 \begin{lstlisting}[numbers=left,xleftmargin=3em]
 class Interpreter with
-  pool Command[]& cmds;
+  pool Command[]* cmds;
   var  Turtle&  turtle;
 do
   traverse cmd in cmds do
@@ -794,44 +794,43 @@ end
 
 \subsubsection{Enqueuing Commands}
 
-\begin{comment}
-
-- TODO: rewrite after new implementation
-
 All examples so far create a fixed tree that does not vary during traversal.
-
-Figure~\ref{lst.turtle.queue} extends the Turtle interpreter with a queue of 
+%
+Figure~\ref{lst.turtle.queue} extends the Turtle application with a queue of 
 pending commands to execute after the running commands terminate.
-The DSL is extended with two new nodes:
-\code{ROOT} has a \code{run} subtree with the running commands, a \code{queue} 
-of pending commands to execute, and a \code{tmp} node that allows in-place 
-manipulation of the tree.
+We define a new \code{Queue} data type in (\emph{CODE-1}):
+\code{ROOT} has a \code{runnning} subtree with the running commands, a 
+\code{waiting} queue of pending commands to execute, and a \code{tmp} node that 
+allows in-place manipulation of the tree.
 Given that all newly allocated nodes must reside in a pool, the \code{tmp} node 
 represents a pointer TODO.
 \code{ITEM} represents a queue item and contains a \code{cmd} subtree with the 
-command to execute, and a \code{prv} item that was inserted before it and 
-should execute before.
-
-
- dynamic queue of commands to be executed after the current
+command to execute, and a \code{prv} queue item pointing to an older item that 
+should execute first (i.e., the queue is in reverse order).
+%
+TODO...
 
 \begin{figure*}%[t]
 \begin{minipage}[t]{0.20\linewidth}
-\begin{lstlisting}[title=CODE-1: DSL]
-data Command with
-  <...>
+\begin{lstlisting}[title=CODE-1: The \code{Queue} data type]
+data Queue with
+  tag NIL;
 or
   tag ROOT with
-    var Command* run;
-    var Command* queue;
-    var Command* tmp;
+    var Queue* running;
+    var Queue* waiting;
+    var Queue* tmp;
   end
 or
   tag ITEM with
     var Command* cmd;
-    var Command* prv;
+    var Queue*   prv;
   end
 end
+
+
+
+
 
 
 
@@ -842,45 +841,53 @@ end
 \end{lstlisting}
 \end{minipage}
 %
-\begin{minipage}[t]{0.39\linewidth}
-\begin{lstlisting}[numbers=left,xleftmargin=3.5em,title=CODE-2: Interpreter]
-traverse cmd in cmds do
-  watching cmd do
-    <...>
-    else/if cmd:ROOT then
+\begin{minipage}[t]{0.36\linewidth}
+\begin{lstlisting}[numbers=left,xleftmargin=3.5em,title=CODE-2: Queue traversal]
+traverse qu in queue do
+  watching qu do
+    if qu:ROOT then
       loop do
         par/and do
-          traverse cmd:ROOT.run;
+          traverse qu:ROOT.running;
         with
-          await cmd:ROOT.queue;
+          await qu:ROOT.waiting;
         end
-        cmds:ROOT.run = cmds:ROOT.queue;
-        cmds:ROOT.queue =
-          new Command.ITEM(
+        qu:ROOT.running =
+          qu:ROOT.waiting;
+        qu:ROOT.waiting =
+          new Queue.ITEM(
                Command.NOTHING(),
-               Command.NOTHING());
+               Queue.NIL());
       end
-    else/if cmd:ITEM then
-      traverse cmd:ITEM.prv;
-      traverse cmd:ITEM.cmd;
+    else/if qu:ITEM then
+      traverse qu:ITEM.prv;
+      do Interpreter with
+        this.turtle = turtle;
+        this.cmds   = qu:ITEM.cmd;
+      end;
+    end
   end
 end
 \end{lstlisting}
 \end{minipage}
 %
-\begin{minipage}[t]{0.35\linewidth}
+\begin{minipage}[t]{0.38\linewidth}
 \begin{lstlisting}[numbers=left,xleftmargin=3.5em,title=CODE-3: Command enqueuing]
 every (cmd,vel,time) in ENQUEUE do
   if _strcmp(cmd,"move") == 0 then
-    cmds:ROOT.tmp =
-      new Command.ITEM(
+    move_or_rotate = true;
+    queue:ROOT.tmp =
+      new Queue.ITEM(
            Command.NOTHING(),
-           Command.PAROR(
-            Command.MOVE(vel),
-            Command.AWAIT(time)));
-    cmds:ROOT.tmp:ITEM.prv =
-      cmds:ROOT.queue:ITEM.prv;
-    cmds:ROOT.queue = cmds:ROOT.tmp;
+           Queue.ITEM(
+            Command.PAROR(
+             Command.MOVE(vel),
+              Command.AWAIT(time)),
+            Queue.NIL()));
+    queue:ROOT.tmp:ITEM.prv:ITEM.prv =
+      queue:ROOT.waiting:ITEM.prv;
+    queue:ROOT.waiting =
+      queue:ROOT.tmp;
   else
     <...>
   end
@@ -900,8 +907,6 @@ end
 \label{lst.turtle.queue}
 }
 \end{figure*}
-
-\end{comment}
 
 \subsection{Gray Code Generation}
 
