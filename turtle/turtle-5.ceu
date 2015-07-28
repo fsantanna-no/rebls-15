@@ -74,12 +74,12 @@ end
 #define DO1SEC(x) Command.PAROR(x,Command.AWAIT(1000))
 
 pool Command[20] cmds = new
-    Command.STREAM_ROOT(
-        DO1SEC(Command.MOVE(100)),
+      Command.STREAM_ROOT(
+       DO1SEC(Command.MOVE(100)),
+       Command.NOTHING(),
+       Command.STREAM_ITEM(
         Command.NOTHING(),
-        Command.STREAM_ITEM(
-            Command.NOTHING(),
-            Command.NOTHING()));
+        Command.NOTHING()));
 
 class Turtle with
     var _SDL_Renderer&  ren;

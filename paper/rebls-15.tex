@@ -117,7 +117,14 @@ Logo, Recursive Data Types, Structured Programming, Reactive Programming}
 
 \section{Introduction}
 
-...
+\begin{comment}
+Difficult because of
+    multiple stack frames
+    concurrent stack frames
+    persistent stack frames (across reactions, with other parts executing)
+    static memory management
+    mutation of the data structure being traversed
+\end{comment}
 
 ... \CEU~\cite{ceu.sensys13,ceu.mod15}
 
@@ -619,10 +626,11 @@ Our second example is an interpreter for a simple variant of the classic Logo
 turtle-graphics interpreter \cite{papert.logo}, which extends the Logo
 paradigm with a \CEU-like parallel execution construct. In our variant, we can
 instruct the turtle to move and rotate in parallel, tracing curves. We declare
-a data type which defines our abstract syntax, which each tag representing one
-of the supported Logo commands. A tree of nodes represents a program, and
+a data type which defines our abstract syntax, with each tag representing one
+of the supported Logo commands. A tree of nodes represents a program, and the
 interpreter is implemented as a traversal of this tree. The aim of this
 example is to demonstrate parallel traversal.
+% TODO: check if BTs will also do par traversal
 
 Figure~\ref{lst.turtle.dsl} presents the data type \code{Command}, which
 specifies the abstract syntax of our Logo variant. As in traditional Logo,
@@ -651,23 +659,19 @@ along a semicircle:
 
 \begin{comment}
 The turtle has three attributes:
-
     a location
     an orientation
     a pen, itself having attributes such as color, width, and up versus down.
-
 The turtle moves with commands that are relative to its own position, such as 
 "move forward 10 spaces" and "turn left 90 degrees". The pen carried by the 
 turtle can also be controlled, by enabling it, setting its color, or setting 
 its width. A student could understand (and predict and reason about) the 
 turtle's motion by imagining what they would do if they were the turtle.  
 Seymour Papert called this "body syntonic" reasoning.
-
 From these building blocks one can build more complex shapes like squares, 
 triangles, circles and other composite figures. Combined with control flow, 
 procedures, and recursion, the idea of turtle graphics is also useful in a 
 Lindenmayer system for generating fractals.
-
 Turtle geometry is also sometimes used in graphics environments as an 
 alternative to a strictly coordinate-addressed graphics system.
 \end{comment}
@@ -706,7 +710,7 @@ or
 end
 \end{lstlisting}
 %\rule{8.5cm}{0.37pt}
-\caption{ DSL for a LOGO turtle.
+\caption{ DSL for a Logo turtle.
 \label{lst.turtle.dsl}
 }
 \end{figure}
@@ -746,40 +750,40 @@ is mutated by code running in another trail.
 \begin{figure}%[t]
 \begin{lstlisting}[numbers=left,xleftmargin=3em]
 class Interpreter with
-   pool Command[]& cmds;
-   var  Turtle&   turtle;
+  pool Command[]& cmds;
+  var  Turtle&  turtle;
 do
-   traverse cmd in cmds do
-      watching cmd do
-         if cmd:SEQ then
-            traverse cmd:SEQ.one;
-            traverse cmd:SEQ.two;
+  traverse cmd in cmds do
+    watching cmd do
+      if cmd:SEQ then
+        traverse cmd:SEQ.one;
+        traverse cmd:SEQ.two;
 
-         else/if cmd:REPEAT then
-            loop i in cmd:REPEAT.times do
-               traverse cmd:REPEAT.command;
-            end
+      else/if cmd:REPEAT then
+        loop i in cmd:REPEAT.times do
+          traverse cmd:REPEAT.command;
+        end
 
-         else/if cmd:MOVE then
-            do TurtleMove(turtle,
-                          cmd:MOVE.pixels);
+      else/if cmd:MOVE then
+        do TurtleMove(turtle,
+                  cmd:MOVE.pixels);
 
-         else/if cmd:ROTATE then
-            do TurtleRotate(turtle,
-                            cmd:ROTATE.angle);
+      else/if cmd:ROTATE then
+        do TurtleRotate(turtle,
+                   cmd:ROTATE.angle);
 
-         else/if cmd:AWAIT then
-            await (cmd:AWAIT.ms) ms;
+      else/if cmd:AWAIT then
+        await (cmd:AWAIT.ms) ms;
 
-         else/if cmd:PAROR then
-            par/or do
-               traverse cmd:PAROR.one;
-            with
-               traverse cmd:PAROR.two;
-            end
-         end
+      else/if cmd:PAROR then
+        par/or do
+          traverse cmd:PAROR.one;
+        with
+          traverse cmd:PAROR.two;
+        end
       end
-   end
+    end
+  end
 end
 \end{lstlisting}
 %\rule{8.5cm}{0.37pt}
@@ -788,7 +792,116 @@ end
 }
 \end{figure}
 
-%\subsubsection{Enqueuing Commands}
+\subsubsection{Enqueuing Commands}
+
+\begin{comment}
+
+- TODO: rewrite after new implementation
+
+All examples so far create a fixed tree that does not vary during traversal.
+
+Figure~\ref{lst.turtle.queue} extends the Turtle interpreter with a queue of 
+pending commands to execute after the running commands terminate.
+The DSL is extended with two new nodes:
+\code{ROOT} has a \code{run} subtree with the running commands, a \code{queue} 
+of pending commands to execute, and a \code{tmp} node that allows in-place 
+manipulation of the tree.
+Given that all newly allocated nodes must reside in a pool, the \code{tmp} node 
+represents a pointer TODO.
+\code{ITEM} represents a queue item and contains a \code{cmd} subtree with the 
+command to execute, and a \code{prv} item that was inserted before it and 
+should execute before.
+
+
+ dynamic queue of commands to be executed after the current
+
+\begin{figure*}%[t]
+\begin{minipage}[t]{0.20\linewidth}
+\begin{lstlisting}[title=CODE-1: DSL]
+data Command with
+  <...>
+or
+  tag ROOT with
+    var Command* run;
+    var Command* queue;
+    var Command* tmp;
+  end
+or
+  tag ITEM with
+    var Command* cmd;
+    var Command* prv;
+  end
+end
+
+
+
+
+
+
+.
+\end{lstlisting}
+\end{minipage}
+%
+\begin{minipage}[t]{0.39\linewidth}
+\begin{lstlisting}[numbers=left,xleftmargin=3.5em,title=CODE-2: Interpreter]
+traverse cmd in cmds do
+  watching cmd do
+    <...>
+    else/if cmd:ROOT then
+      loop do
+        par/and do
+          traverse cmd:ROOT.run;
+        with
+          await cmd:ROOT.queue;
+        end
+        cmds:ROOT.run = cmds:ROOT.queue;
+        cmds:ROOT.queue =
+          new Command.ITEM(
+               Command.NOTHING(),
+               Command.NOTHING());
+      end
+    else/if cmd:ITEM then
+      traverse cmd:ITEM.prv;
+      traverse cmd:ITEM.cmd;
+  end
+end
+\end{lstlisting}
+\end{minipage}
+%
+\begin{minipage}[t]{0.35\linewidth}
+\begin{lstlisting}[numbers=left,xleftmargin=3.5em,title=CODE-3: Command enqueuing]
+every (cmd,vel,time) in ENQUEUE do
+  if _strcmp(cmd,"move") == 0 then
+    cmds:ROOT.tmp =
+      new Command.ITEM(
+           Command.NOTHING(),
+           Command.PAROR(
+            Command.MOVE(vel),
+            Command.AWAIT(time)));
+    cmds:ROOT.tmp:ITEM.prv =
+      cmds:ROOT.queue:ITEM.prv;
+    cmds:ROOT.queue = cmds:ROOT.tmp;
+  else
+    <...>
+  end
+end
+
+
+
+
+
+.
+\end{lstlisting}
+\end{minipage}
+%
+%\rule{17.5cm}{0.37pt}
+\caption{ Queue extension for the Turtle DSL of
+          Figures~\ref{lst.turtle.dsl}~and~\ref{lst.turtle.interpreter}.
+\label{lst.turtle.queue}
+}
+\end{figure*}
+
+\end{comment}
 
 \subsection{Gray Code Generation}
 
@@ -798,31 +911,31 @@ var int tot = 4;
 var int[] vec = [0, 0, 0, 0];
 
 par/or do
-    every VISIT do
-        _printf("( ");
-        loop i in tot do
-            _printf("%d ", vec[i]);
-        end
-        _printf(")\n");
-    end
+   every VISIT do
+      _printf("( ");
+      loop i in tot do
+         _printf("%d ", vec[i]);
+      end
+      _printf(")\n");
+   end
 with
-    /*
-     * Syntax invented for numeric/non-data
-     * traversals (not implemented):
-     *  - starts from idx=0
-     *  - memory for at most [N] elements,
-     *    or [] unbounded.
-     *  - recursive calls receive the next idx
-     */
-    traverse idx in [] do
-        if idx == tot then
-            await NEXT;
-        else
-            traverse idx + 1;
-            vec[idx] = 1 - vec[idx];
-            traverse idx + 1;
-        end
-    end
+   /*
+    * Syntax invented for numeric/non-data
+    * traversals (not implemented):
+    *  - starts from idx=0
+    *  - memory for at most [N] elements,
+    *   or [] unbounded.
+    *  - recursive calls receive the next idx
+    */
+   traverse idx in [] do
+      if idx == tot then
+         await NEXT;
+      else
+         traverse idx + 1;
+         vec[idx] = 1 - vec[idx];
+         traverse idx + 1;
+      end
+   end
 end
 \end{lstlisting}
 %\rule{8.5cm}{0.37pt}
@@ -836,6 +949,13 @@ end
 \section{Related Work}
 
 ...
+
+\begin{quotation}
+What to compare against???
+
+Found this: http://arxiv.org/pdf/1104.2293.pdf
+Follow the references.
+\end{quotation}
 
 \section{Conclusion}
 
