@@ -9,13 +9,13 @@ data BTree with
     tag NIL;
 or
     tag SEQ with
-        var BTree* first;
-        var BTree* second;
+        var BTree first;
+        var BTree second;
     end
 or
     tag PAR with
-        var BTree* left;
-        var BTree* right;
+        var BTree left;
+        var BTree right;
     end
 or
     tag LEAF with

@@ -36,7 +36,7 @@ do
     end
 end
 
-#include "btree.ceu"
+#include "btree-2.ceu"
     /* depends on the "Leaf" data type and the "LeafHandler" class */
 
 var Ball red  = Ball(10,50,20,60);
@@ -89,7 +89,7 @@ with
     input void SDL_REDRAW;
     var _SDL_Window&? win;
         finalize
-            win = _SDL_CreateWindow("BTree 01",
+            win = _SDL_CreateWindow("BTree 02",
                     _SDL_WINDOWPOS_UNDEFINED, _SDL_WINDOWPOS_UNDEFINED,
                     400, 300, _SDL_WINDOW_SHOWN);
         with

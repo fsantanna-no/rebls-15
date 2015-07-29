@@ -1,3 +1,6 @@
+// lst.gray
+// requires "array" branch
+
 native do
   #include <assert.h>
 end

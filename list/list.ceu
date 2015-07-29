@@ -2,35 +2,44 @@ data List with
     tag NIL;
 or
     tag CONS with
-        var int head;
-        var List* tail;
+        var int  head;
+        var List tail;
     end
 end
 
+// lst.list
+_printf("\n>>> lst.list (1st block)\n");
 do
     pool List[1] list;
-    list = new List.CONS(1,
-                List.CONS(2,
-                 List.NIL()));
-    _printf("%d %d\n", list:CONS.head,
-                       list:CONS.tail:NIL);
-        // prints 1, 1
-end
-do
-    pool List[] list;
-    list = new List.CONS(1,
-                List.CONS(2,
-                 List.NIL()));
-    list:CONS.tail = new List.CONS(3, List.NIL());
-    _printf("%d\n", list:CONS.tail:CONS.head);
-        // prints 3 (2 has been freed)
+    list = new List.CONS(10,
+                List.CONS(20,
+                 List.CONS(30,
+                  List.NIL())));
+    _printf("%d %d\n", list.CONS.head,
+                       list.CONS.tail.NIL);
+        // prints 10, 1
 end
 
+// lst.list
+_printf("\n>>> lst.list (2nd block)\n");
+do
+    pool List[] list;
+    list = new List.CONS(10,
+                List.CONS(20,
+                 List.CONS(30,
+                  List.NIL())));
+    list.CONS.tail = new List.CONS(50, List.NIL());
+    _printf("%d\n", list.CONS.tail.CONS.head);
+        // prints 50 (20 and 30 have been freed)
+end
+
+// lst.list.sum
+_printf("\n>>> lst.list.sum\n");
 do
     pool List[] list = new
-        List.CONS(1,
-            List.CONS(2,
-                List.CONS(3,
+        List.CONS(10,
+            List.CONS(20,
+                List.CONS(30,
                     List.NIL())));
 
     var int sum =
@@ -44,6 +53,43 @@ do
         end;
 
     _printf("SUM = %d\n", sum);
+end
+
+// lst.list.sum.react
+_printf("\n>>> lst.list.sum.react\n");
+do
+    class Input with
+    do
+        async do
+            emit 10s;
+        end
+    end
+    var Input _;
+
+    do
+        pool List[] l;
+        l = new
+            List.CONS(10,
+                List.CONS(20,
+                    List.CONS(30,
+                        List.NIL())));
+
+        var int sum =
+            traverse e in l do
+                if e:NIL then
+                    escape 0;
+                else
+                    watching *e do
+                        _printf("partial = %d\n", e:CONS.head);
+                        await 1s;
+                        var int sum_tail = traverse e:CONS.tail;
+                        escape sum_tail + e:CONS.head;
+                    end
+                    escape 0;
+                end
+            end;
+        _printf("sum = %d\n", sum);
+    end
 end
 
 escape 0;

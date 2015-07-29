@@ -117,6 +117,28 @@ Logo, Recursive Data Types, Structured Programming, Reactive Programming}
 
 \section{Introduction}
 
+\begin{quotation}
+All examples have working implementations:
+
+- TODO: compare the real code with the listing
+
+\begin{itemize}
+\item label "lst.list":               rebls-15/list/list.ceu
+\item label "lst.list.sum":           rebls-15/list/list.ceu
+\item label "lst.list.sum.react":     rebls-15/list/list.ceu
+%
+\item label "lst.bt1":                rebls-15/bts-ceu/btree-1.ceu
+\item label "lst.bt1.interpreter":    rebls-15/bts-ceu/btree-1.ceu
+\item label "lst.bt1.leaf":           rebls-15/bts-ceu/domain-1.ceu
+%
+\item label "lst.turtle.dsl":         rebls-15/turtle/turtle-2.ceu
+\item label "lst.turtle.interpreter": rebls-15/turtle/turtle-2.ceu
+\item label "lst.turtle.queue":       rebls-15/turtle/turtle-7.ceu
+%
+\item label "lst.gray":               rebls-15/loopless/gray/gray-vec.ceu
+\end{itemize}
+\end{quotation}
+
 \begin{comment}
 Difficult because of
     multiple stack frames
@@ -231,8 +253,8 @@ data List with
    tag NIL;
 or
    tag CONS with
-      var int   head;
-      var List* tail;
+      var int  head;
+      var List tail;
    end
 end
 
@@ -261,11 +283,11 @@ end
 \caption{
 A recursive \code{List} data type definition (lines 1--8) and uses (lines 
 10--18 and 20--28).
-\label{lst.data.list}
+\label{lst.list}
 }
 \end{figure}
 
-Figure~\ref{lst.data.list} illustrates the recursive \code{List} data type,
+Figure~\ref{lst.list} illustrates the recursive \code{List} data type,
 declared as a tagged union. The first tag, \code{NIL} (line 2), represents
 the empty list and is the union's null type. The second tag, \code{CONS},
 holds a value in its field \code{head} and a pointer to the rest of the list
@@ -325,9 +347,9 @@ It also preserves explicit lexical scopes with static memory management.
 % rebls-15/list/list.ceu
 \begin{figure}%[t]
 \begin{lstlisting}[numbers=left,xleftmargin=3em]
-pool List[3] l = new List.CONS(1,
-                      List.CONS(2,
-                       List.CONS(3,
+pool List[3] l = new List.CONS(10,
+                      List.CONS(20,
+                       List.CONS(30,
                         List.NIL())));
 
 var int sum =
@@ -340,16 +362,17 @@ var int sum =
       end
    end;
 _printf("sum = %d\n", sum);
+      // prints 60
 \end{lstlisting}
 %\rule{8.5cm}{0.37pt}
 \caption{
 Calculating the \emph{sum} of a list.
-\label{lst.sum}
+\label{lst.list.sum}
 }
 \end{figure}
 
 We begin by showing the flavor of the construct through an example.
-The code in Figure~\ref{lst.sum} creates a list (lines 1--4) and traverses 
+The code in Figure~\ref{lst.list.sum} creates a list (lines 1--4) and traverses 
 it to calculate the sum of elements (lines 6--15).
 The \code{traverse} block (line 7) starts with the element \code{e} pointing to 
 the root of the list \code{l}.
@@ -363,10 +386,10 @@ pointing to the \code{e:CONS.tail}.
 When used without event control mechanisms, as in this simple example,
 a \code{traverse} block is equivalent to an anonymous closure called recursively.
 
-% rebls-15/list/react.ceu
+% rebls-15/list/list.ceu
 \begin{figure}%[t]
 \begin{lstlisting}[numbers=left,xleftmargin=3em]
-pool List[] l = <...>;  // 1, 2, 3
+pool List[] l = <...>;  // 10, 20, 30
 var int sum =
    traverse e in l do
       if e:NIL then
@@ -386,7 +409,7 @@ _printf("sum = %d\n", sum);
 %\rule{8.5cm}{0.37pt}
 \caption{
 Calculating the \emph{sum} of a list, one element each second.
-\label{lst.sum.react}
+\label{lst.list.sum.react}
 }
 \end{figure}
 % TODO: react.ceu with mutation
@@ -510,19 +533,20 @@ and if it did not finish successfully, ticks its right subtree until it finishes
 This skeleton, augmented with leaves that test properties, set properties, perform animations and sounds,
 and other custom combinators, can be preferable to finite state machines (hierarchical, augmented, or otherwise) for authoring Game AI.
 
+% rebls-15/bts-ceu/btree-1.ceu
 \begin{figure}%[t]
 \begin{lstlisting}[numbers=left,xleftmargin=3em]
 data BTree with
    tag NIL;
 or
    tag SEQ with
-      var BTree* first;
-      var BTree* second;
+      var BTree first;
+      var BTree second;
    end
 or
    tag SEL with
-      var BTree* first;
-      var BTree* second;
+      var BTree first;
+      var BTree second;
    end
 or
    tag LEAF with
@@ -538,6 +562,7 @@ end
 }
 \end{figure}
 
+% rebls-15/bts-ceu/btree-1.ceu
 \begin{figure}%[t]
 \begin{lstlisting}[numbers=left,xleftmargin=3em]
 class BTreeInterpreter with
@@ -587,6 +612,7 @@ _printf("ret = %d\n", ret);     // prints "3"
 }
 \end{figure}
 
+% rebls-15/bts-ceu/domain-1.ceu
 \begin{figure}%[t]
 \begin{lstlisting}[numbers=left,xleftmargin=3em]
 class LeafHandler with
@@ -676,19 +702,20 @@ Turtle geometry is also sometimes used in graphics environments as an
 alternative to a strictly coordinate-addressed graphics system.
 \end{comment}
 
+% rebls-15/turtle/turtle-2.ceu
 \begin{figure}%[t]
 \begin{lstlisting}[numbers=left,xleftmargin=3em]
 data Command with
    tag NOTHING;
 or
    tag SEQ with
-      var Command* one;
-      var Command* two;
+      var Command one;
+      var Command two;
    end
 or
    tag REPEAT with
       var int     times;
-      var Command* command;
+      var Command command;
    end
 or
    tag MOVE with
@@ -704,8 +731,8 @@ or
    end
 or
    tag PAROR with
-      var Command* one;
-      var Command* two;
+      var Command one;
+      var Command two;
    end
 end
 \end{lstlisting}
@@ -747,11 +774,12 @@ due to the use of the \code{cmd} pointer in code that spans multiple
 reactions. This ensures clean abortion in case the AST being interpreted
 is mutated by code running in another trail.
 
+% rebls-15/turtle/turtle-7.ceu
 \begin{figure}%[t]
 \begin{lstlisting}[numbers=left,xleftmargin=3em]
 class Interpreter with
   pool Command[]* cmds;
-  var  Turtle&  turtle;
+  var  Turtle&    turtle;
 do
   traverse cmd in cmds do
     watching cmd do
@@ -817,14 +845,14 @@ data Queue with
   tag NIL;
 or
   tag ROOT with
-    var Queue* running;
-    var Queue* waiting;
-    var Queue* tmp;
+    var Queue running;
+    var Queue waiting;
+    var Queue tmp;
   end
 or
   tag ITEM with
-    var Command* cmd;
-    var Queue*   prv;
+    var Command cmd;
+    var Queue   prv;
   end
 end
 
@@ -910,6 +938,7 @@ end
 
 \subsection{Gray Code Generation}
 
+% rebls-15/loopless/gray/gray-vec.ceu
 \begin{figure}%[t]
 \begin{lstlisting}[numbers=left,xleftmargin=3em]
 var int tot = 4;
