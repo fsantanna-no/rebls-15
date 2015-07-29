@@ -72,7 +72,7 @@ or
     end
 or
     tag ITEM with
-        var Command cmd;
+        var Command cmds;
         var Queue   prv;
     end
 end
@@ -235,7 +235,7 @@ with
                 traverse &qu:ITEM.prv;
                 do Interpreter with
                     this.turtle = turtle;
-                    this.cmds   = qu:ITEM.cmd;
+                    this.cmds   = qu:ITEM.cmds;
                 end;
             end
         end
@@ -329,7 +329,7 @@ with
                                        Command.ROTATE(180),
                                        Command.AWAIT(1000)),
                                       Queue.NIL()));
-            _ceu_out_assert(queue.ROOT.tmp.ITEM.prv.ITEM.cmd.PAROR.one.ROTATE,
+            _ceu_out_assert(queue.ROOT.tmp.ITEM.prv.ITEM.cmds.PAROR.one.ROTATE,
                             "out of memory");
             queue.ROOT.tmp.ITEM.prv.ITEM.prv = queue.ROOT.waiting.ITEM.prv;
             queue.ROOT.waiting = queue.ROOT.tmp;
@@ -342,11 +342,11 @@ with
                                        Command.MOVE(180),
                                        Command.AWAIT(1000)),
                                       Queue.NIL()));
-            _ceu_out_assert(queue.ROOT.tmp.ITEM.prv.ITEM.cmd.PAROR.one.MOVE,
+            _ceu_out_assert(queue.ROOT.tmp.ITEM.prv.ITEM.cmds.PAROR.one.MOVE,
                             "out of memory");
             queue.ROOT.tmp.ITEM.prv.ITEM.prv = queue.ROOT.waiting.ITEM.prv;
 #if 0
-_ceu_out_assert(queue.ROOT.tmp.ITEM.prv.ITEM.cmd.PAROR.one.ROTATE,
+_ceu_out_assert(queue.ROOT.tmp.ITEM.prv.ITEM.cmds.PAROR.one.ROTATE,
         "out of memory");
 #endif
             queue.ROOT.waiting = queue.ROOT.tmp;
