@@ -2,6 +2,8 @@
  * Turtle STREAM
  */
 
+// lst.turtle.queue
+
 #include "sdl.ceu"
 #include "sdl-gfx.ceu"
 
@@ -45,46 +47,53 @@ or
     end
 or
     tag SEQUENCE with
-        var Command* one;
-        var Command* two;
+        var Command one;
+        var Command two;
     end
 or
     tag REPEAT with
-        var int      times;
-        var Command* command;
+        var int     times;
+        var Command command;
     end
 or
     tag PAROR with
-        var Command* one;
-        var Command* two;
-    end
-or
-    tag STREAM_ROOT with
-        var Command* run;
-        var Command* tmp;
-        var Command* queue;
-    end
-or
-    tag STREAM_ITEM with
-        var Command* prv;
-        var Command* cmd;
+        var Command one;
+        var Command two;
     end
 end
 
-#define DO1SEC(x) Command.PAROR(x,Command.AWAIT(1000))
+data Queue with
+    tag NIL;
+or
+    tag ROOT with
+        var Queue running;
+        var Queue waiting;
+        var Queue tmp;
+    end
+or
+    tag ITEM with
+        var Command cmd;
+        var Queue   prv;
+    end
+end
 
-pool Command[20] cmds = new
-      Command.STREAM_ROOT(
-       DO1SEC(Command.MOVE(100)),
-       Command.NOTHING(),
-       Command.STREAM_ITEM(
-        Command.NOTHING(),
-        Command.NOTHING()));
+pool Queue[20] queue = new
+    Queue.ROOT(
+        Queue.ITEM(
+            Command.PAROR(
+                Command.MOVE(100),
+                Command.AWAIT(1000)),
+            Queue.NIL()),
+        Queue.ITEM(
+            Command.NOTHING(),
+            Queue.NIL()),
+        Queue.NIL());
+
 
 class Turtle with
-    var _SDL_Renderer&  ren;
-    var SDL_Point       pos   = SDL_Point(200,200);
-    var int             angle = 180;
+    var _SDL_Renderer& ren;
+    var SDL_Point      pos   = SDL_Point(200,200);
+    var int            angle = 180;
 do
     every SDL_REDRAW do
         _filledCircleRGBA(&ren, pos.x,pos.y, 25,
@@ -148,20 +157,12 @@ do
 
 end
 
-par/or do
-    await SDL_QUIT;
-with
-    every SDL_REDRAW do
-        _SDL_SetRenderDrawColor(&ren, 0xFF,0xFF,0xFF, 0xFF);
-        _SDL_RenderFillRect(&ren, null);
-    end
-with
-    var Turtle turtle with
-        this.ren = ren;
-    end;
-
+class Interpreter with
+    var  Turtle&    turtle;
+    pool Command[]* cmds;
+do
     traverse cmd in cmds do
-        watching cmd do
+        watching *cmd do
             //if cmd:NOTHING then
                 //nothing;
 
@@ -182,64 +183,65 @@ with
 
             else/if cmd:PAROR then
                 par/or do
-                    traverse cmd:PAROR.one;
+                    traverse &cmd:PAROR.one;
                 with
-                    traverse cmd:PAROR.two;
+                    traverse &cmd:PAROR.two;
                 end
 
             else/if cmd:SEQUENCE then
-                traverse cmd:SEQUENCE.one;
-                traverse cmd:SEQUENCE.two;
+                traverse &cmd:SEQUENCE.one;
+                traverse &cmd:SEQUENCE.two;
 
             else/if cmd:REPEAT then
                 loop i in cmd:REPEAT.times do
-                    traverse cmd:REPEAT.command;
+                    traverse &cmd:REPEAT.command;
                 end
-
-            else/if cmd:STREAM_ROOT then
-                loop do
-                    par/and do
-                        traverse cmd:STREAM_ROOT.run;
-                    with
-                        await cmd:STREAM_ROOT.queue;
-                    end
-                    cmds:STREAM_ROOT.run = cmds:STREAM_ROOT.queue;
-                    cmds:STREAM_ROOT.queue = new Command.STREAM_ITEM(
-                                                Command.NOTHING(),
-                                                Command.NOTHING());
-                end
-            else/if cmd:STREAM_ITEM then
-                traverse cmd:STREAM_ITEM.prv;
-                traverse cmd:STREAM_ITEM.cmd;
 
             else
                 _ceu_out_assert(0, "not implemented");
             end
         end
     end
+end
+
+par/or do
+    await SDL_QUIT;
+with
+    every SDL_REDRAW do
+        _SDL_SetRenderDrawColor(&ren, 0xFF,0xFF,0xFF, 0xFF);
+        _SDL_RenderFillRect(&ren, null);
+    end
+with
+
+    var Turtle turtle with
+        this.ren = ren;
+    end;
+
+    traverse qu in queue do
+        watching *qu do
+            if qu:ROOT then
+                loop do
+                    par/and do
+                        traverse &qu:ROOT.running;
+                    with
+                        await qu:ROOT.waiting;
+                    end
+                    qu:ROOT.running = qu:ROOT.waiting;
+                    qu:ROOT.waiting = new Queue.ITEM(
+                                            Command.NOTHING(),
+                                            Queue.NIL());
+                end
+            else/if qu:ITEM then
+                traverse &qu:ITEM.prv;
+                do Interpreter with
+                    this.turtle = turtle;
+                    this.cmds   = qu:ITEM.cmd;
+                end;
+            end
+        end
+    end
 
     await FOREVER;
-#if 0
-with
-    loop do
-        await 2s;
-        cmds:STREAM_ROOT.tmp = new Command.STREAM_ITEM(
-                                    Command.NOTHING(),
-                                    DO1SEC(Command.ROTATE(180)));
-        _ceu_out_assert(cmds:STREAM_ROOT.tmp:STREAM_ITEM.cmd:PAROR.two:AWAIT,
-                        "out of memory");
-        cmds:STREAM_ROOT.tmp:STREAM_ITEM.prv = cmds:STREAM_ROOT.queue:STREAM_ITEM.prv;
-        cmds:STREAM_ROOT.queue = cmds:STREAM_ROOT.tmp;
-
-        cmds:STREAM_ROOT.tmp = new Command.STREAM_ITEM(
-                                    Command.NOTHING(),
-                                    DO1SEC(Command.MOVE(100)));
-        _ceu_out_assert(cmds:STREAM_ROOT.tmp:STREAM_ITEM.cmd:PAROR.two:AWAIT,
-                        "out of memory");
-        cmds:STREAM_ROOT.tmp:STREAM_ITEM.prv = cmds:STREAM_ROOT.queue:STREAM_ITEM.prv;
-        cmds:STREAM_ROOT.queue = cmds:STREAM_ROOT.tmp;
-    end
-#endif
 with
     _printf("; TURTLE STREAM COMMANDS:\n");
     _printf("> move 100 1000\n");
@@ -283,37 +285,74 @@ with
             _get_cmd(cmd, &vel, &time);
         end
 
+        var bool move_or_rotate = false;
+
         // QUIT
         if _strcmp(cmd,"quit")==0 then
             break;
 
         // MOVE
         else/if _strcmp(cmd,"move") == 0 then
-            cmds:STREAM_ROOT.tmp = new Command.STREAM_ITEM(
-                                        Command.NOTHING(),
-                                        Command.PAROR(
-                                            Command.MOVE(vel),
-                                            Command.AWAIT(time)));
-            _ceu_out_assert(cmds:STREAM_ROOT.tmp:STREAM_ITEM.cmd:PAROR.two:AWAIT,
-                            "out of memory");
-            cmds:STREAM_ROOT.tmp:STREAM_ITEM.prv = 
-                cmds:STREAM_ROOT.queue:STREAM_ITEM.prv;
-            cmds:STREAM_ROOT.queue = cmds:STREAM_ROOT.tmp;
+            move_or_rotate = true;
+            queue.ROOT.tmp = new Queue.ITEM(
+                                    Command.NOTHING(),
+                                    Queue.ITEM(
+                                      Command.PAROR(
+                                       Command.MOVE(vel),
+                                       Command.AWAIT(time)),
+                                      Queue.NIL()));
 
         // ROTATE
         else/if _strcmp(cmd,"rotate") == 0 then
-            cmds:STREAM_ROOT.tmp = new Command.STREAM_ITEM(
-                                        Command.NOTHING(),
-                                        Command.PAROR(
-                                            Command.ROTATE(vel),
-                                            Command.AWAIT(time)));
-            _ceu_out_assert(cmds:STREAM_ROOT.tmp:STREAM_ITEM.cmd:PAROR.two:AWAIT,
-                            "out of memory");
-            cmds:STREAM_ROOT.tmp:STREAM_ITEM.prv = 
-                cmds:STREAM_ROOT.queue:STREAM_ITEM.prv;
-            cmds:STREAM_ROOT.queue = cmds:STREAM_ROOT.tmp;
+            move_or_rotate = true;
+            queue.ROOT.tmp = new Queue.ITEM(
+                                    Command.NOTHING(),
+                                    Queue.ITEM(
+                                      Command.PAROR(
+                                       Command.ROTATE(vel),
+                                       Command.AWAIT(time)),
+                                      Queue.NIL()));
+        end
+
+        if move_or_rotate then
+            queue.ROOT.tmp.ITEM.prv.ITEM.prv = queue.ROOT.waiting.ITEM.prv;
+            queue.ROOT.waiting = queue.ROOT.tmp;
         end
     end
+#if 0
+    every 2s do
+        do
+            queue.ROOT.tmp = new Queue.ITEM(
+                                    Command.NOTHING(),
+                                    Queue.ITEM(
+                                      Command.PAROR(
+                                       Command.ROTATE(180),
+                                       Command.AWAIT(1000)),
+                                      Queue.NIL()));
+            _ceu_out_assert(queue.ROOT.tmp.ITEM.prv.ITEM.cmd.PAROR.one.ROTATE,
+                            "out of memory");
+            queue.ROOT.tmp.ITEM.prv.ITEM.prv = queue.ROOT.waiting.ITEM.prv;
+            queue.ROOT.waiting = queue.ROOT.tmp;
+        end
+        do
+            queue.ROOT.tmp = new Queue.ITEM(
+                                    Command.NOTHING(),
+                                    Queue.ITEM(
+                                      Command.PAROR(
+                                       Command.MOVE(180),
+                                       Command.AWAIT(1000)),
+                                      Queue.NIL()));
+            _ceu_out_assert(queue.ROOT.tmp.ITEM.prv.ITEM.cmd.PAROR.one.MOVE,
+                            "out of memory");
+            queue.ROOT.tmp.ITEM.prv.ITEM.prv = queue.ROOT.waiting.ITEM.prv;
+#if 0
+_ceu_out_assert(queue.ROOT.tmp.ITEM.prv.ITEM.cmd.PAROR.one.ROTATE,
+        "out of memory");
+#endif
+            queue.ROOT.waiting = queue.ROOT.tmp;
+        end
+    end
+#endif
 with
     every SDL_REDRAW do
         _SDL_RenderPresent(&ren);

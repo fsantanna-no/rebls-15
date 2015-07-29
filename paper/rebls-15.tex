@@ -22,7 +22,7 @@
 %columns=fullflexible,
 %basicstyle=\ttfamily,
 escapeinside={||},
-mathescape=true,
+%mathescape=true,
     language=C, % choose the language of the code
     basicstyle=\fontfamily{pcr}\selectfont\scriptsize\color{black},
     keywordstyle=\color{black}\bfseries, % style for keywords
@@ -82,12 +82,12 @@ incrementally, in successive reactions to input events.
 recursively and suspended at any point, retaining the full state and stack 
 frames alive.
 \code{traverse} is designed for the synchronous language \CEU, inheriting all 
-existing concurrency functionality, such as parallel compositions with 
-orthogonal abortion, static memory management, and bounded memory and reaction 
+of its concurrency functionality and safety properties, such as parallel 
+compositions with orthogonal abortion, static memory management, and bounded 
+reaction time and memory usage.
+We discuss three applications in the domains of incremental computation and 
+control-oriented DSLs that contain reactive and recursive behavior at the same 
 time.
-We present two application scenarios that take advantage of recursive and 
-reactive behavior: \emph{incremental computation} and \emph{control-oriented 
-domain specific languages}.
 
 \begin{comment}
 MIX OF:
@@ -113,11 +113,40 @@ DESIGNED FOR \CEU:
 \terms{Design, Languages}
 
 \keywords{Behavior Trees, Domain Specific Languages, Incremental Computation, 
-Logo, Structured Programming}
+Logo, Recursive Data Types, Structured Programming, Reactive Programming}
 
 \section{Introduction}
 
-...
+\begin{quotation}
+All examples have working implementations:
+
+- TODO: compare the real code with the listing
+
+\begin{itemize}
+\item label "lst.list":               rebls-15/list/list.ceu
+\item label "lst.list.sum":           rebls-15/list/list.ceu
+\item label "lst.list.sum.react":     rebls-15/list/list.ceu
+%
+\item label "lst.bt1":                rebls-15/bts-ceu/btree-1.ceu
+\item label "lst.bt1.interpreter":    rebls-15/bts-ceu/btree-1.ceu
+\item label "lst.bt1.leaf":           rebls-15/bts-ceu/domain-1.ceu
+%
+\item label "lst.turtle.dsl":         rebls-15/turtle/turtle-2.ceu
+\item label "lst.turtle.interpreter": rebls-15/turtle/turtle-2.ceu
+\item label "lst.turtle.queue":       rebls-15/turtle/turtle-7.ceu
+%
+\item label "lst.gray":               rebls-15/loopless/gray/gray-vec.ceu
+\end{itemize}
+\end{quotation}
+
+\begin{comment}
+Difficult because of
+    multiple stack frames
+    concurrent stack frames
+    persistent stack frames (across reactions, with other parts executing)
+    static memory management
+    mutation of the data structure being traversed
+\end{comment}
 
 ... \CEU~\cite{ceu.sensys13,ceu.mod15}
 
@@ -135,16 +164,16 @@ Logo, Structured Programming}
 
 \begin{figure}%[t]
 \begin{lstlisting}[numbers=left,xleftmargin=3em]
-input void RESET;   // declares an external event
+input void RESET;  // declares an external event
 var int v = 0;     // variable shared by the trails
 par do
-   loop do       // 1st trail
+   loop do         // 1st trail
       await 1s;
       v = v + 1;
       _printf("v = %d\n", v);
    end
 with
-   loop do       // 2nd trail
+   loop do         // 2nd trail
       await RESET;
       v = 0;
    end
@@ -224,8 +253,8 @@ data List with
    tag NIL;
 or
    tag CONS with
-      var int   head;
-      var List* tail;
+      var int  head;
+      var List tail;
    end
 end
 
@@ -254,11 +283,11 @@ end
 \caption{
 A recursive \code{List} data type definition (lines 1--8) and uses (lines 
 10--18 and 20--28).
-\label{lst.data.list}
+\label{lst.list}
 }
 \end{figure}
 
-Figure~\ref{lst.data.list} illustrates the recursive \code{List} data type,
+Figure~\ref{lst.list} illustrates the recursive \code{List} data type,
 declared as a tagged union. The first tag, \code{NIL} (line 2), represents
 the empty list and is the union's null type. The second tag, \code{CONS},
 holds a value in its field \code{head} and a pointer to the rest of the list
@@ -318,9 +347,9 @@ It also preserves explicit lexical scopes with static memory management.
 % rebls-15/list/list.ceu
 \begin{figure}%[t]
 \begin{lstlisting}[numbers=left,xleftmargin=3em]
-pool List[3] l = new List.CONS(1,
-                      List.CONS(2,
-                       List.CONS(3,
+pool List[3] l = new List.CONS(10,
+                      List.CONS(20,
+                       List.CONS(30,
                         List.NIL())));
 
 var int sum =
@@ -333,16 +362,17 @@ var int sum =
       end
    end;
 _printf("sum = %d\n", sum);
+      // prints 60
 \end{lstlisting}
 %\rule{8.5cm}{0.37pt}
 \caption{
 Calculating the \emph{sum} of a list.
-\label{lst.sum}
+\label{lst.list.sum}
 }
 \end{figure}
 
 We begin by showing the flavor of the construct through an example.
-The code in Figure~\ref{lst.sum} creates a list (lines 1--4) and traverses 
+The code in Figure~\ref{lst.list.sum} creates a list (lines 1--4) and traverses 
 it to calculate the sum of elements (lines 6--15).
 The \code{traverse} block (line 7) starts with the element \code{e} pointing to 
 the root of the list \code{l}.
@@ -356,10 +386,10 @@ pointing to the \code{e:CONS.tail}.
 When used without event control mechanisms, as in this simple example,
 a \code{traverse} block is equivalent to an anonymous closure called recursively.
 
-% rebls-15/list/react.ceu
+% rebls-15/list/list.ceu
 \begin{figure}%[t]
 \begin{lstlisting}[numbers=left,xleftmargin=3em]
-pool List[] l = <...>;  // 1, 2, 3
+pool List[] l = <...>;  // 10, 20, 30
 var int sum =
    traverse e in l do
       if e:NIL then
@@ -379,7 +409,7 @@ _printf("sum = %d\n", sum);
 %\rule{8.5cm}{0.37pt}
 \caption{
 Calculating the \emph{sum} of a list, one element each second.
-\label{lst.sum.react}
+\label{lst.list.sum.react}
 }
 \end{figure}
 % TODO: react.ceu with mutation
@@ -455,72 +485,68 @@ Calculating the \emph{sum} of a list.
 
 \section{Applications}
 
-incremental computation, behavior trees, control-dominated DSLs
+In this section, we present three applications that explore the reactive and 
+incremental nature of the \code{traverse} construct.
+We start with standard \emph{Behavior Trees} used in video games for AI 
+modeling~\cite{TODO}, and extend them with parallel compositions.
+Then, we show a \emph{Logo Turtle}~\cite{TODO} that can execute commands in 
+parallel (e.g., \code{move} and \code{rotate}) and also incorporates a dynamic 
+queue of commands issued concurrently with the running program.
+Finally, we implement \emph{Gray code} generation~\cite{TODO} to illustrate how 
+\code{traverse} can also be used for more general recursive algorithms without 
+an associated data type.
 
-...
-
-\subsection{Incremental Computation}
-
-...
+\begin{quotation}
+How many applications will we present?
 
 \begin{itemize}
-\item gray binary generation?
+    \item behavior trees (DSL)
+    \item logo turtle (DSL)
+    \item turtle stream (incremental)
+    \item gray code gen (incremental)
 \end{itemize}
 
-...
+I suggest gray code as the last one because it does not use a data type.
+We could show as an example of flexibility of traverse.
+BTs before turtle because they are simpler and because the stream example is 
+the most complex and should follow the logo turtle.
+\end{quotation}
 
-\subsection{Domain Specific Languages}
+\subsection{Behavior Trees}
 
-\subsubsection{Behavior Trees}
-
-The term ``Behavior Trees'' denotes a family of DSLs 
-used for Game AI.
+The term \emph{Behavior Trees} denotes a family of DSLs used for Game 
+AI~\cite{TODO}.
 The term is loose, because different games use different languages,
 but generally it indicates an interpreted domain-specific language
 for creature behavior that includes at least sequence and selection combinators,
-and which are ``ticked'' periodically.
+and which are ``ticked'' periodically~\cite{TODO}.
+
+%\subsubsection{A Standard Behavior Tree}
 
 The semantics of the sequence combinator can be understood as short-circuit evaluation of a conjunction;
-the Seq node ticks its left subtree until it finishes,
+the \code{SEQ} node ticks its left subtree until it finishes,
 and if it finishes successfully, ticks its right subtree until it finishes.
 The semantics of the selection combinator can be understood as short-circuit evaluation of an alternation;
-the Sel node ticks its left subtree until it finishes,
+the \code{SEL} node ticks its left subtree until it finishes,
 and if it did not finish successfully, ticks its right subtree until it finishes.
 
 This skeleton, augmented with leaves that test properties, set properties, perform animations and sounds,
 and other custom combinators, can be preferable to finite state machines (hierarchical, augmented, or otherwise) for authoring Game AI.
 
-Ceu's parallel features make implementing a parallel combinator for behavior trees much easier.
-
-...
-
-\subsection{TODO: Standard Behavior Tree}
-
-COMMENTS:
-
-Most "standard" BTs I found have these "sequence" and "selector" composite 
-nodes.
-I thought about starting with this one and maybe expanding it with a 
-"parallel/or" further.
-
-Two things to discuss:
-(1) how the implementation of the interpreter is straightforward;
-(2) that leaf nodes are not restricted to a "tick" callback and can actually 
-execute arbitrary code in \CEU.
-
+% rebls-15/bts-ceu/btree-1.ceu
 \begin{figure}%[t]
 \begin{lstlisting}[numbers=left,xleftmargin=3em]
 data BTree with
    tag NIL;
 or
    tag SEQ with
-      var BTree* first;
-      var BTree* second;
+      var BTree first;
+      var BTree second;
    end
 or
    tag SEL with
-      var BTree* first;
-      var BTree* second;
+      var BTree first;
+      var BTree second;
    end
 or
    tag LEAF with
@@ -536,6 +562,7 @@ end
 }
 \end{figure}
 
+% rebls-15/bts-ceu/btree-1.ceu
 \begin{figure}%[t]
 \begin{lstlisting}[numbers=left,xleftmargin=3em]
 class BTreeInterpreter with
@@ -585,6 +612,7 @@ _printf("ret = %d\n", ret);     // prints "3"
 }
 \end{figure}
 
+% rebls-15/bts-ceu/domain-1.ceu
 \begin{figure}%[t]
 \begin{lstlisting}[numbers=left,xleftmargin=3em]
 class LeafHandler with
@@ -600,86 +628,190 @@ end
 }
 \end{figure}
 
-\subsubsection{Logo Turtle}
+%\subsubsection{Parallel Behavior Tree}
 
-...
+Ceu's parallel features make implementing a parallel combinator for behavior 
+trees much easier.
 
+\begin{quotation}
+Most "standard" BTs I found have these "sequence" and "selector" composite 
+nodes.
+I thought about starting with this one and maybe expanding it with a 
+"parallel/or" further.
+
+Two things to discuss:
+(1) how the implementation of the interpreter is straightforward;
+(2) that leaf nodes are not restricted to a "tick" callback and can actually 
+execute arbitrary code in \CEU.
+\end{quotation}
+
+
+\subsection{Logo Turtle}
+
+Our second example is an interpreter for a simple variant of the classic Logo
+turtle-graphics interpreter \cite{papert.logo}, which extends the Logo
+paradigm with a \CEU-like parallel execution construct. In our variant, we can
+instruct the turtle to move and rotate in parallel, tracing curves. We declare
+a data type which defines our abstract syntax, with each tag representing one
+of the supported Logo commands. A tree of nodes represents a program, and the
+interpreter is implemented as a traversal of this tree. The aim of this
+example is to demonstrate parallel traversal.
+% TODO: check if BTs will also do par traversal
+
+Figure~\ref{lst.turtle.dsl} presents the data type \code{Command}, which
+specifies the abstract syntax of our Logo variant. As in traditional Logo,
+commands can be listed in sequence to be executed one after the other
+(represented through a chain of \code{SEQ} nodes), and commands can be
+repeated a number of times (denoted through a \code{REPEAT} node). Our variant
+includes \code{MOVE} and \code{ROTATE} nodes to move the turtle, but these are
+specified differently from traditional Logo: here, they take as arguments the
+speed at which they should affect the turtle. For example, a
+\code{Command.MOVE(50)} node directs the turtle to move at the speed of 50
+pixels per second, indefinitely. The only way to make the turtle stop moving
+or rotating is through two \CEU-like extensions added to our Logo variant:
+\code{AWAIT} and \code{PAROR}. \code{AWAIT} simply awaits a given number of
+milliseconds. \code{PAROR}, modeled after the \CEU construct \code{par/or},
+launches two commands in parallel, and aborts both of them as soon as one of
+them finishes. For example, the following construct would make the turtle move
+along a semicircle:
+
+\begin{verbatim}
+   Command.PAROR(
+      Command.AWAIT(1000),
+      Command.PAROR(
+         Command.MOVE(50),
+         Command.ROTATE(180)))
+\end{verbatim}
+
+\begin{comment}
+The turtle has three attributes:
+    a location
+    an orientation
+    a pen, itself having attributes such as color, width, and up versus down.
+The turtle moves with commands that are relative to its own position, such as 
+"move forward 10 spaces" and "turn left 90 degrees". The pen carried by the 
+turtle can also be controlled, by enabling it, setting its color, or setting 
+its width. A student could understand (and predict and reason about) the 
+turtle's motion by imagining what they would do if they were the turtle.  
+Seymour Papert called this "body syntonic" reasoning.
+From these building blocks one can build more complex shapes like squares, 
+triangles, circles and other composite figures. Combined with control flow, 
+procedures, and recursion, the idea of turtle graphics is also useful in a 
+Lindenmayer system for generating fractals.
+Turtle geometry is also sometimes used in graphics environments as an 
+alternative to a strictly coordinate-addressed graphics system.
+\end{comment}
+
+% rebls-15/turtle/turtle-2.ceu
 \begin{figure}%[t]
 \begin{lstlisting}[numbers=left,xleftmargin=3em]
 data Command with
    tag NOTHING;
 or
-   tag ROTATE with
-      var int angle;
+   tag SEQ with
+      var Command one;
+      var Command two;
+   end
+or
+   tag REPEAT with
+      var int     times;
+      var Command command;
    end
 or
    tag MOVE with
       var int pixels;
    end
 or
+   tag ROTATE with
+      var int angle;
+   end
+or
    tag AWAIT with
       var int ms;
    end
 or
-   tag SEQ with
-      var Command* one;
-      var Command* two;
-   end
-or
-   tag REPEAT with
-      var int     times;
-      var Command* command;
-   end
-or
    tag PAROR with
-      var Command* one;
-      var Command* two;
+      var Command one;
+      var Command two;
    end
 end
 \end{lstlisting}
 %\rule{8.5cm}{0.37pt}
-\caption{ DSL for a LOGO turtle.
+\caption{ DSL for a Logo turtle.
 \label{lst.turtle.dsl}
 }
 \end{figure}
 
+Figure~\ref{lst.turtle.interpreter} depicts the interpreter. It is implemented
+as the \code{Interpreter} organism (declared with the \code{class} keyword).
+It holds as attributes a reference to the AST of commands (\code{cmds}, line 2)
+and a reference to a \code{Turtle} object which implements the UI. The
+execution body of the organism contains the \code{traverse} construct which
+runs the interpreter (lines 5--35).
+
+We have then a test for each kind of tag in the data type. In lines 7--9,
+\code{SEQ} is handled by traversing each of its child commands, in sequence:
+the second invocation of \code{traverse} in that block (line 9) only runs
+after the first one (line 8) finishes. In lines 11--14, \code{REPEAT} is
+handled by traversing its command the specified number of times.
+
+\code{MOVE} is handled in lines 16--18 by spawning a new organism called
+\code{TurtleMove}, which launches a separate trail of execution. The
+implementation of \code{TurtleMove} (not shown) updates the coordinates of the
+\code{turtle} instance it got as a parameter in its constructor. The
+implementation of \code{ROTATE} (lines 20--22) is similar.
+
+In lines 24--25, \code{AWAIT} is implemented by simply causing the current
+trail of execution of the interpreter to await the given amount of time.
+Finally, \code{PAROR} (lines 27--32) uses the \code{par/or} construct
+to traverse both subcommands at the same time. As per the semantics of
+\code{par/or}, as soon as one of the subtrees terminate its execution,
+the other one will be aborted.
+
+Note that the entire interpreter block is surrounded by a \code{watching}
+construct (line 6). The \CEU compiler enforces the presence of a guard, 
+due to the use of the \code{cmd} pointer in code that spans multiple
+reactions. This ensures clean abortion in case the AST being interpreted
+is mutated by code running in another trail.
+
+% rebls-15/turtle/turtle-7.ceu
 \begin{figure}%[t]
 \begin{lstlisting}[numbers=left,xleftmargin=3em]
 class Interpreter with
-   pool Command[]& cmds;
-   var  Turtle&   turtle;
+  pool Command[]* cmds;
+  var  Turtle&    turtle;
 do
-   traverse cmd in cmds do
-      watching cmd do
-         if cmd:AWAIT then
-            await (cmd:AWAIT.ms) ms;
+  traverse cmd in cmds do
+    watching cmd do
+      if cmd:SEQ then
+        traverse cmd:SEQ.one;
+        traverse cmd:SEQ.two;
 
-         else/if cmd:ROTATE then
-            do TurtleRotate(turtle,
-                            cmd:ROTATE.angle);
+      else/if cmd:REPEAT then
+        loop i in cmd:REPEAT.times do
+          traverse cmd:REPEAT.command;
+        end
 
-         else/if cmd:MOVE then
-            do TurtleMove(turtle,
-                          cmd:MOVE.pixels);
+      else/if cmd:MOVE then
+        do TurtleMove(turtle,
+                  cmd:MOVE.pixels);
 
-         else/if cmd:PAROR then
-            par/or do
-               traverse cmd:PAROR.one;
-            with
-               traverse cmd:PAROR.two;
-            end
+      else/if cmd:ROTATE then
+        do TurtleRotate(turtle,
+                   cmd:ROTATE.angle);
 
-         else/if cmd:SEQ then
-            traverse cmd:SEQ.one;
-            traverse cmd:SEQ.two;
+      else/if cmd:AWAIT then
+        await (cmd:AWAIT.ms) ms;
 
-         else/if cmd:REPEAT then
-            loop i in cmd:REPEAT.times do
-               traverse cmd:REPEAT.command;
-            end
-         end
+      else/if cmd:PAROR then
+        par/or do
+          traverse cmd:PAROR.one;
+        with
+          traverse cmd:PAROR.two;
+        end
       end
-   end
+    end
+  end
 end
 \end{lstlisting}
 %\rule{8.5cm}{0.37pt}
@@ -688,9 +820,167 @@ end
 }
 \end{figure}
 
+\subsubsection{Enqueuing Commands}
+
+All examples so far create a fixed tree that does not vary during traversal.
+%
+Figure~\ref{lst.turtle.queue} extends the Turtle application with a queue of 
+pending commands to execute after the running commands terminate.
+We define a new \code{Queue} data type in (\emph{CODE-1}):
+\code{ROOT} has a \code{runnning} subtree with the running commands, a 
+\code{waiting} queue of pending commands to execute, and a \code{tmp} node that 
+allows in-place manipulation of the tree.
+Given that all newly allocated nodes must reside in a pool, the \code{tmp} node 
+represents a pointer TODO.
+\code{ITEM} represents a queue item and contains a \code{cmd} subtree with the 
+command to execute, and a \code{prv} queue item pointing to an older item that 
+should execute first (i.e., the queue is in reverse order).
+%
+TODO...
+
+\begin{figure*}%[t]
+\begin{minipage}[t]{0.20\linewidth}
+\begin{lstlisting}[title=CODE-1: The \code{Queue} data type]
+data Queue with
+  tag NIL;
+or
+  tag ROOT with
+    var Queue running;
+    var Queue waiting;
+    var Queue tmp;
+  end
+or
+  tag ITEM with
+    var Command cmd;
+    var Queue   prv;
+  end
+end
+
+
+
+
+
+
+
+
+
+
+.
+\end{lstlisting}
+\end{minipage}
+%
+\begin{minipage}[t]{0.36\linewidth}
+\begin{lstlisting}[numbers=left,xleftmargin=3.5em,title=CODE-2: Queue traversal]
+traverse qu in queue do
+  watching qu do
+    if qu:ROOT then
+      loop do
+        par/and do
+          traverse qu:ROOT.running;
+        with
+          await qu:ROOT.waiting;
+        end
+        qu:ROOT.running =
+          qu:ROOT.waiting;
+        qu:ROOT.waiting =
+          new Queue.ITEM(
+               Command.NOTHING(),
+               Queue.NIL());
+      end
+    else/if qu:ITEM then
+      traverse qu:ITEM.prv;
+      do Interpreter with
+        this.turtle = turtle;
+        this.cmds   = qu:ITEM.cmd;
+      end;
+    end
+  end
+end
+\end{lstlisting}
+\end{minipage}
+%
+\begin{minipage}[t]{0.38\linewidth}
+\begin{lstlisting}[numbers=left,xleftmargin=3.5em,title=CODE-3: Command enqueuing]
+every (cmd,vel,time) in ENQUEUE do
+  if _strcmp(cmd,"move") == 0 then
+    move_or_rotate = true;
+    queue:ROOT.tmp =
+      new Queue.ITEM(
+           Command.NOTHING(),
+           Queue.ITEM(
+            Command.PAROR(
+             Command.MOVE(vel),
+              Command.AWAIT(time)),
+            Queue.NIL()));
+    queue:ROOT.tmp:ITEM.prv:ITEM.prv =
+      queue:ROOT.waiting:ITEM.prv;
+    queue:ROOT.waiting =
+      queue:ROOT.tmp;
+  else
+    <...>
+  end
+end
+
+
+
+
+
+.
+\end{lstlisting}
+\end{minipage}
+%
+%\rule{17.5cm}{0.37pt}
+\caption{ Queue extension for the Turtle DSL of
+          Figures~\ref{lst.turtle.dsl}~and~\ref{lst.turtle.interpreter}.
+\label{lst.turtle.queue}
+}
+\end{figure*}
+
+\subsection{Gray Code Generation}
+
+% rebls-15/loopless/gray/gray-vec.ceu
+\begin{figure}%[t]
+\begin{lstlisting}[numbers=left,xleftmargin=3em]
+var int[4] bits = [0, 0, 0, 0];
+
+par/or do
+   every VISIT do
+      _printf("( ");
+      loop i in $$bits do // $$ is the array size
+         _printf("%d ", bits[i]);
+      end
+      _printf(")\n");
+   end
+with
+   traverse idx in [$$bits] do
+      if idx == $$bits then
+         await NEXT;
+      else
+         traverse idx + 1;
+         bits[idx] = 1 - bits[idx];
+         traverse idx + 1;
+      end
+   end
+end
+\end{lstlisting}
+%\rule{8.5cm}{0.37pt}
+\caption{ Generator for 4-bit Gray code.
+\label{lst.gray}
+}
+\end{figure}
+
+
+
 \section{Related Work}
 
 ...
+
+\begin{quotation}
+What to compare against???
+
+Found this: http://arxiv.org/pdf/1104.2293.pdf
+Follow the references.
+\end{quotation}
 
 \section{Conclusion}
 

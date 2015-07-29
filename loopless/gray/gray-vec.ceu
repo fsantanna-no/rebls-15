@@ -1,0 +1,41 @@
+// lst.gray
+// requires "array" branch
+
+native do
+  #include <assert.h>
+end
+
+input void VISIT;
+input void NEXT;
+
+var int tot = 4;
+var int[] vec = [0, 0, 0, 0];
+
+par/or do
+    every VISIT do
+        _printf("( ");
+        loop i in tot do
+            _printf("%d ", vec[i]);
+        end
+        _printf(")\n");
+    end
+with
+    traverse idx in [] do
+        if idx == tot then
+            await NEXT;
+        else
+            traverse idx + 1;
+            vec[idx] = 1 - vec[idx];
+            traverse idx + 1;
+         end
+    end
+with
+    loop do
+        async do
+            emit VISIT;
+            emit NEXT;
+        end
+    end
+end
+
+escape 0;
