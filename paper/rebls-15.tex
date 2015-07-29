@@ -22,7 +22,7 @@
 %columns=fullflexible,
 %basicstyle=\ttfamily,
 escapeinside={||},
-mathescape=true,
+%mathescape=true,
     language=C, % choose the language of the code
     basicstyle=\fontfamily{pcr}\selectfont\scriptsize\color{black},
     keywordstyle=\color{black}\bfseries, % style for keywords
@@ -941,39 +941,30 @@ end
 % rebls-15/loopless/gray/gray-vec.ceu
 \begin{figure}%[t]
 \begin{lstlisting}[numbers=left,xleftmargin=3em]
-var int tot = 4;
-var int[] vec = [0, 0, 0, 0];
+var int[4] bits = [0, 0, 0, 0];
 
 par/or do
    every VISIT do
       _printf("( ");
-      loop i in tot do
-         _printf("%d ", vec[i]);
+      loop i in $$bits do // $$ is the array size
+         _printf("%d ", bits[i]);
       end
       _printf(")\n");
    end
 with
-   /*
-    * Syntax invented for numeric/non-data
-    * traversals (not implemented):
-    *  - starts from idx=0
-    *  - memory for at most [N] elements,
-    *   or [] unbounded.
-    *  - recursive calls receive the next idx
-    */
-   traverse idx in [] do
-      if idx == tot then
+   traverse idx in [$$bits] do
+      if idx == $$bits then
          await NEXT;
       else
          traverse idx + 1;
-         vec[idx] = 1 - vec[idx];
+         bits[idx] = 1 - bits[idx];
          traverse idx + 1;
       end
    end
 end
 \end{lstlisting}
 %\rule{8.5cm}{0.37pt}
-\caption{ Gray code generation for tuples of size 4.
+\caption{ Generator for 4-bit Gray code.
 \label{lst.gray}
 }
 \end{figure}
