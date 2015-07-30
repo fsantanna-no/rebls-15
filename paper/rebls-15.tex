@@ -1,4 +1,5 @@
-\documentclass{acm_proc_article-sp}
+%\documentclass{acm_proc_article-sp}
+\documentclass{sig-alternate}
 
 \usepackage{xspace}
 \newcommand{\CEU}{\textsc{C\'{e}u}\xspace}
@@ -58,7 +59,7 @@ escapeinside={||},
 
 \begin{document}
 
-\title{Reactive Traversal of Recursive Data Types (?!)}
+\title{Reactive Traversal of Recursive Data Types}
 %\subtitle{[Extended Abstract]
 
 \numberofauthors{3}
@@ -289,12 +290,9 @@ is an option type.
 \begin{figure}[t]
 \begin{lstlisting}[numbers=left,xleftmargin=3em]
 data List with
-   tag NIL;
+   tag NIL ();
 or
-   tag CONS with
-      var int  head;
-      var List tail;
-   end
+   tag CONS (int head, List tail);
 end
 
 do
@@ -608,21 +606,13 @@ to consume the output of planners.
 \begin{figure}%[t]
 \begin{lstlisting}[numbers=left,xleftmargin=3em]
 data BTree with
-   tag NIL;
+   tag NIL ();
 or
-   tag SEQ with
-      var BTree first;
-      var BTree second;
-   end
+   tag SEQ (BTree first, BTree second);
 or
-   tag SEL with
-      var BTree first;
-      var BTree second;
-   end
+   tag SEL (BTree first, BTree second);
 or
-   tag LEAF with
-      var Leaf leaf;
-   end
+   tag LEAF (Leaf leaf);
 end
 
 \end{lstlisting}
@@ -783,34 +773,19 @@ alternative to a strictly coordinate-addressed graphics system.
 \begin{figure}%[t]
 \begin{lstlisting}[numbers=left,xleftmargin=3em]
 data Command with
-   tag NOTHING;
+   tag NOTHING ();
 or
-   tag SEQ with
-      var Command one;
-      var Command two;
-   end
+   tag SEQ (Command one, Command two);
 or
-   tag REPEAT with
-      var int     times;
-      var Command command;
-   end
+   tag REPEAT (int times, Command command);
 or
-   tag MOVE with
-      var int pixels;
-   end
+   tag MOVE (int pixels);
 or
-   tag ROTATE with
-      var int angle;
-   end
+   tag ROTATE (int angle);
 or
-   tag AWAIT with
-      var int ms;
-   end
+   tag AWAIT (int ms);
 or
-   tag PAROR with
-      var Command one;
-      var Command two;
-   end
+   tag PAROR (Command one, Command two);
 end
 \end{lstlisting}
 %\rule{8.5cm}{0.37pt}
@@ -818,32 +793,6 @@ end
 \label{lst.turtle.dsl}
 }
 \end{figure}
-
-%% rebls-15/turtle/turtle-2.ceu
-%\begin{figure}%[t]
-%\begin{lstlisting}[numbers=left,xleftmargin=3em]
-%data Command with
-%   tag NOTHING;
-%or
-%   tag SEQ    with var Command one, two; end
-%or
-%   tag REPEAT with var int times;
-%                   var Command command;  end
-%or
-%   tag MOVE   with var int pixels;       end
-%or
-%   tag ROTATE with var int angle;        end
-%or
-%   tag AWAIT  with var int ms;           end
-%or
-%   tag PAROR  with var Command one, two; end
-%end
-%\end{lstlisting}
-%%\rule{8.5cm}{0.37pt}
-%\caption{ DSL for a Logo turtle.
-%\label{lst.turtle.dsl}
-%}
-%\end{figure}
 
 Figure~\ref{lst.turtle.interpreter} depicts the interpreter. It is implemented
 as the \code{Interpreter} organism (declared with the \code{class} keyword).
@@ -1033,22 +982,22 @@ The \code{tmp} field is automatically set to \code{NIL} (mark~\emph{(f)}).
 - TODO: modularization of data type and travesal
 
 \begin{figure*}%[t]
-\begin{minipage}[t]{0.20\linewidth}
+\begin{minipage}[t]{0.22\linewidth}
 \begin{lstlisting}[title=CODE-1: The \code{Queue} data type]
 data Queue with
-  tag NIL;
+  tag NIL ();
 or
-  tag ROOT with
-    var Queue running;
-    var Queue waiting;
-    var Queue tmp;
-  end
+  tag ROOT (Queue running,
+            Queue waiting,
+            Queue tmp);
 or
-  tag ITEM with
-    var Command cmds;
-    var Queue   prv;
-  end
+  tag ITEM (Command cmds,
+            Queue prv);
 end
+
+
+
+
 
 
 
