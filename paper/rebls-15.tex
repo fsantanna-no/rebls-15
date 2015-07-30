@@ -5,6 +5,8 @@
 \newcommand{\code}[1] {{\small{\texttt{#1}}}}
 
 \usepackage{verbatim}
+\usepackage{enumitem}
+
 \usepackage{color}
 \definecolor{light}{gray}{0.87}
 \definecolor{dark}{gray}{0.30}
@@ -23,7 +25,7 @@
 %columns=fullflexible,
 %basicstyle=\ttfamily,
 escapeinside={||},
-%mathescape=true,
+    %mathescape=true,
     language=C, % choose the language of the code
     basicstyle=\fontfamily{pcr}\selectfont\scriptsize\color{black},
     keywordstyle=\color{black}\bfseries, % style for keywords
@@ -118,6 +120,37 @@ Logo, Recursive Data Types, Structured Programming, Reactive Programming}
 
 \section{Introduction}
 
+\begin{comment}
+All examples have working implementations:
+
+- TODO: compare the real code with the listing
+
+\begin{itemize}
+\item label "lst.list":               rebls-15/list/list.ceu
+\item label "lst.list.sum":           rebls-15/list/list.ceu
+\item label "lst.list.sum.react":     rebls-15/list/list.ceu
+%
+\item label "lst.bt1":                rebls-15/bts-ceu/btree-1.ceu
+\item label "lst.bt1.interpreter":    rebls-15/bts-ceu/btree-1.ceu
+\item label "lst.bt1.leaf":           rebls-15/bts-ceu/domain-1.ceu
+%
+\item label "lst.turtle.dsl":         rebls-15/turtle/turtle-2.ceu
+\item label "lst.turtle.interpreter": rebls-15/turtle/turtle-2.ceu
+\item label "lst.turtle.queue":       rebls-15/turtle/turtle-7.ceu
+%
+\item label "lst.gray":               rebls-15/loopless/gray/gray-vec.ceu
+\end{itemize}
+\end{comment}
+
+\begin{comment}
+Difficult because of
+    multiple stack frames
+    concurrent stack frames
+    persistent stack frames (across reactions, with other parts executing)
+    static memory management
+    mutation of the data structure being traversed
+\end{comment}
+
 The facilities offered by a language for constructing data types and values
 have a direct impact on the nature of algorithms that programmers of that
 language will write. The design of such facilities, on its turn, must take
@@ -157,28 +190,6 @@ Following the presentation of these constructs and their design, we showcase
 their use by discussing three applications in the domains of incremental
 computation and control-oriented DSLs that contain reactive and recursive
 behavior at the same time.
-
-%\begin{quotation}
-%All examples have working implementations:
-%
-%- TODO: compare the real code with the listing
-%
-%\begin{itemize}
-%\item label "lst.list":               rebls-15/list/list.ceu
-%\item label "lst.list.sum":           rebls-15/list/list.ceu
-%\item label "lst.list.sum.react":     rebls-15/list/list.ceu
-%%
-%\item label "lst.bt1":                rebls-15/bts-ceu/btree-1.ceu
-%\item label "lst.bt1.interpreter":    rebls-15/bts-ceu/btree-1.ceu
-%\item label "lst.bt1.leaf":           rebls-15/bts-ceu/domain-1.ceu
-%%
-%\item label "lst.turtle.dsl":         rebls-15/turtle/turtle-2.ceu
-%\item label "lst.turtle.interpreter": rebls-15/turtle/turtle-2.ceu
-%\item label "lst.turtle.queue":       rebls-15/turtle/turtle-7.ceu
-%%
-%\item label "lst.gray":               rebls-15/loopless/gray/gray-vec.ceu
-%\end{itemize}
-%\end{quotation}
 
 \section{C\'eu constructs}
 
@@ -526,7 +537,7 @@ Finally, we implement \emph{Gray code} generation~\cite{TODO} to illustrate how
 \code{traverse} can also be used for more general recursive algorithms without 
 an associated data type.
 
-\begin{quotation}
+\begin{comment}
 How many applications will we present?
 
 \begin{itemize}
@@ -540,7 +551,7 @@ I suggest gray code as the last one because it does not use a data type.
 We could show as an example of flexibility of traverse.
 BTs before turtle because they are simpler and because the stream example is 
 the most complex and should follow the logo turtle.
-\end{quotation}
+\end{comment}
 
 \subsection{Behavior Trees}
 
@@ -563,12 +574,12 @@ and other custom combinators, can be preferable to finite state machines for aut
 Because the evaluation of each tree extends across many frames,
 and there are sufficiently many creatures that it is infeasible for each creature to have its own thread,
 writing behavior tree nodes and leaves in other languages is an exercise in stack-ripped event-driven programming~\cite{krohn2007events}.
-By lowering the barrier to writing custom nodes and leaves, \CEU makes behavior trees more flexible.
-Furthermore, the \code{traverse} feature is necessary to retain the runtime-editable quality of behavior trees.
+By lowering the barrier to writing custom nodes and leaves, \CEU makes behavior trees more usable.
+Furthermore, \code{traverse} is necessary to retain the runtime-editable quality of behavior trees.
 
 \subsubsection{Behavior trees as a contingent plan}
 
-The leaves of a behavior tree in a blocksworld domain
+The leaves of a behavior tree in a blocks world domain
 might include sensors that quickly either succeed or fail,
 as well as actuators that move blocks and unconditionally succeed.
 
@@ -581,7 +592,9 @@ But if block 3 is not on the table,
 we should move block 3 from block 2 to the table,
 and then move block 2 from the table to block 1,
 and then block 3 from the table to block 2,
-again achieving a 123 stack.}.
+also achieving a 123 stack.}.
+We use a \code{SEL} node and a sensor leaf to decide which strategy is appropriate,
+and \code{SEQ} nodes and actuator leaves to execute it.
 This illustrates how the behavior tree can exhibit goal-directed behavior.
 It is not automatic; it is authored.
 
@@ -652,22 +665,22 @@ do
 end
 
 pool BTree[] btree =
-    new BTree.SEL(
-        BTree.SEQ(
-            BTree.LEAF(Leaf.SENSE_ON_TABLE(3)),
-            BTree.SEQ(
-                BTree.LEAF(Leaf.MOVE_B_TO_B(2, 3, 1)),
-                BTree.LEAF(Leaf.MOVE_FROM_T(3, 2))
-            )
-        ),
-        BTree.SEQ(
-            BTree.LEAF(Leaf.MOVE_TO_T(3, 2)),
-            BTree.SEQ(
-                BTree.LEAF(Leaf.MOVE_FROM_T(2, 1)),
-                BTree.LEAF(Leaf.MOVE_FROM_T(3, 2))
-            )
-        )
-    );
+   new BTree.SEL(
+      BTree.SEQ(
+         BTree.LEAF(Leaf.SENSE_ON_TABLE(3)),
+         BTree.SEQ(
+            BTree.LEAF(Leaf.MOVE_B_TO_B(2, 3, 1)),
+            BTree.LEAF(Leaf.MOVE_FROM_T(3, 2))
+         )
+      ),
+      BTree.SEQ(
+         BTree.LEAF(Leaf.MOVE_TO_T(3, 2)),
+         BTree.SEQ(
+            BTree.LEAF(Leaf.MOVE_FROM_T(2, 1)),
+            BTree.LEAF(Leaf.MOVE_FROM_T(3, 2))
+         )
+      )
+   );
 
 var int ret = do BTreeInterpreter(btree);
 
@@ -698,7 +711,7 @@ _printf("ret = %d\n", ret);     // prints "3"
 
 %\subsubsection{Parallel Behavior Tree}
 
-\begin{quotation}
+\begin{comment}
 Most "standard" BTs I found have these "sequence" and "selector" composite 
 nodes.
 I thought about starting with this one and maybe expanding it with a 
@@ -708,8 +721,7 @@ Two things to discuss:
 (1) how the implementation of the interpreter is straightforward;
 (2) that leaf nodes are not restricted to a "tick" callback and can actually 
 execute arbitrary code in \CEU.
-\end{quotation}
-
+\end{comment}
 
 \subsection{Logo Turtle}
 
@@ -869,40 +881,40 @@ is mutated by code running in another trail.
 \begin{figure}%[t]
 \begin{lstlisting}[numbers=left,xleftmargin=3em]
 class Interpreter with
-  pool Command[]* cmds;
-  var  Turtle&    turtle;
+   pool Command[]* cmds;
+   var   Turtle&   turtle;
 do
-  traverse cmd in cmds do
-    watching cmd do
-      if cmd:SEQ then
-        traverse cmd:SEQ.one;
-        traverse cmd:SEQ.two;
+   traverse cmd in cmds do
+      watching cmd do
+         if cmd:SEQ then
+            traverse cmd:SEQ.one;
+            traverse cmd:SEQ.two;
 
-      else/if cmd:REPEAT then
-        loop i in cmd:REPEAT.times do
-          traverse cmd:REPEAT.command;
-        end
+         else/if cmd:REPEAT then
+            loop i in cmd:REPEAT.times do
+               traverse cmd:REPEAT.command;
+            end
 
-      else/if cmd:MOVE then
-        do TurtleMove(turtle,
-                  cmd:MOVE.pixels);
+         else/if cmd:MOVE then
+            do TurtleMove(turtle,
+                          cmd:MOVE.pixels);
 
-      else/if cmd:ROTATE then
-        do TurtleRotate(turtle,
-                   cmd:ROTATE.angle);
+         else/if cmd:ROTATE then
+            do TurtleRotate(turtle,
+                            cmd:ROTATE.angle);
 
-      else/if cmd:AWAIT then
-        await (cmd:AWAIT.ms) ms;
+         else/if cmd:AWAIT then
+            await (cmd:AWAIT.ms) ms;
 
-      else/if cmd:PAROR then
-        par/or do
-          traverse cmd:PAROR.one;
-        with
-          traverse cmd:PAROR.two;
-        end
+         else/if cmd:PAROR then
+            par/or do
+               traverse cmd:PAROR.one;
+            with
+               traverse cmd:PAROR.two;
+            end
+         end
       end
-    end
-  end
+   end
 end
 \end{lstlisting}
 %\rule{8.5cm}{0.37pt}
@@ -918,6 +930,7 @@ All examples so far create a fixed tree that does not vary during traversal.
 %
 Figure~\ref{lst.turtle.queue} extends the Turtle application with a queue of 
 pending commands to execute after the running commands terminate.
+
 We define a new \code{Queue} data type in (\emph{CODE-1}):
 \code{ROOT} has a \code{running} subtree with the running commands, a 
 \code{waiting} queue of pending commands to execute, and a \code{tmp} node that 
@@ -928,7 +941,96 @@ represents a pointer TODO.
 command to execute, and a \code{prv} queue item pointing to an older item that 
 should execute first (i.e., the queue is in reverse order).
 %
-TODO...
+We define a new \code{Queue} data type in \emph{CODE-1}:
+The tag \code{ROOT} has a \code{runnning} subtree with the running commands, a 
+\code{waiting} queue of pending commands to execute afterwards, and a 
+\code{tmp} node to allows in-place manipulation of the tree (to be discussed 
+further).
+%
+The \code{ITEM} tag represents a queue item and contains a \code{cmds} subtree 
+with the commands to execute, and a \code{prv} queue item pointing to an older 
+item that should execute first (i.e., the queue is in reverse order).
+%
+As Figure~\ref{fig.queue-1} illustrates in box \code{0}, a queue instance 
+should have a single \code{ROOT} node with linked lists of \code{ITEM} nodes in 
+the \code{running} and \code{waiting} fields.
+Except on command creation, the \code{tmp} field is always \code{NIL}.
+
+The \code{queue} traversal in \emph{CODE-2} handles the tags \code{ROOT} (lines 
+3--16) and \code{ITEM} (lines 17--20).
+%
+The \code{ROOT} traversal is a continuous \code{loop} that executes the 
+\code{running} subtree and swaps it on termination with the \code{waiting} 
+queue.
+The \code{par/and} (lines 5--9) ensures that that the swap only occurs after 
+the current \code{running} commands terminate (line 6) \emph{and} something (in 
+parallel) mutates the \code{waiting} subtree (line 8), meaning that the queue 
+is no longer empty.
+The swapping process (lines 10--15) is illustrated in Figure~\ref{fig.queue-1} 
+in the respective boxes (0--2):
+%
+\begin{enumerate}[start=0]
+%
+\item The initial state assumes pre-existing \code{running} and \code{waiting} 
+items.
+\item Lines 10--11 assign the \code{waiting} subtree to the \code{running} 
+field (mark~\emph{(a)}), releasing the old subtree (mark~\emph{(b)})).
+The \code{waiting} field is automatically set to \code{NIL} (mark~\emph{(c)}).
+%
+\item Lines 12--15 assign a new neutral \code{ITEM} (with a dummy 
+\code{NOTHING} command in the \code{cmds} field) to the \code{waiting} queue 
+(mark~\emph{(d)}.
+%
+\end{enumerate}
+%
+After the swapping process, the \code{loop} restarts and traverses the new 
+\code{running} commands.
+%
+The \code{ITEM} traversal is straightforward:
+first we traverse the previous item (line 18), and then we reuse the 
+\code{Interpreter} class of Figure~\ref{lst.turtle.interpreter} to traverse the 
+commands (line 19--20).
+
+Even though this example mutates the \code{running} field only \emph{after} its 
+traversal terminates, it is safe to do an arbitrary mutation at any time.
+Note that the compiler enforces the use of the \code{watching} construct (lines 
+3--22) to enclose the running turtle interpreter (lines 19--20).
+Hence, if its enclosing \code{ITEM} (line 17) is mutated, the \code{watching} 
+will awake and abort the interpreter inside its lexical scope.
+
+The enqueuing of new commands is depicted in \emph{CODE-3}.
+The external input event \code{ENQUEUE} (line 1) accepts \emph{move} and 
+\emph{rotate} commands with an associated velocity and time (i.e., 
+\code{char*,int,int} arguments).
+The \code{every} loop reacts to each occurrence of \code{ENQUEUE}, creating and 
+enqueuing the requested command, as illustrated in Figure~\ref{fig.queue-2} 
+(1--3):
+%
+\begin{enumerate}[start=0]
+%
+\item The initial state assumes the pre-existing neutral \code{ITEM} in the 
+root of the \code{waiting} field.
+%
+\item Line 4--9 create the new \code{ITEM}, with the set of commands to 
+\code{MOVE} the turtle, and assigns it to the \code{tmp} field (mark~\emph{a}).
+%
+\item Lines 13--14 move the already \code{waiting} commands to tail of the 
+\code{tmp} node (mark~\emph{(b)}).
+Note that the neutral \code{ITEM} is skipped to avoid the \code{waiting} root 
+to become \code{NIL} and awake the \code{ROOT} node (line 8 of \emph{CODE-2}) 
+before we finish the enqueuing operation.
+The old location for the moved commands is automatically set to \code{NIL} 
+(mark~\emph{(c)}).
+%
+\item Line 15 moves the \code{tmp} subtree back to the \code{waiting} field 
+(mark~\emph{(d)}), releasing the neutral \code{ITEM} (mark~\emph{(e)}), and 
+notifying the \code{ROOT} node that the queue is no longer empty.
+The \code{tmp} field is automatically set to \code{NIL} (mark~\emph{(f)}).
+%
+\end{enumerate}
+%
+
+- TODO: modularization of data type and travesal
 
 \begin{figure*}%[t]
 \begin{minipage}[t]{0.20\linewidth}
@@ -943,12 +1045,10 @@ or
   end
 or
   tag ITEM with
-    var Command cmd;
+    var Command cmds;
     var Queue   prv;
   end
 end
-
-
 
 
 
@@ -981,37 +1081,33 @@ traverse qu in queue do
       end
     else/if qu:ITEM then
       traverse qu:ITEM.prv;
-      do Interpreter with
-        this.turtle = turtle;
-        this.cmds   = qu:ITEM.cmd;
-      end;
+      do Interpreter(turtle,
+                     qu:ITEM.cmds);
     end
   end
 end
 \end{lstlisting}
 \end{minipage}
 %
-\begin{minipage}[t]{0.38\linewidth}
+\begin{minipage}[t]{0.39\linewidth}
 \begin{lstlisting}[numbers=left,xleftmargin=3.5em,title=CODE-3: Command enqueuing]
+input (char*,int,int) ENQUEUE;
 every (cmd,vel,time) in ENQUEUE do
-  if _strcmp(cmd,"move") == 0 then
-    move_or_rotate = true;
-    queue:ROOT.tmp =
+  if _strcmp(cmd,"move")==0 then
+    queue.ROOT.tmp =
       new Queue.ITEM(
-           Command.NOTHING(),
-           Queue.ITEM(
-            Command.PAROR(
-             Command.MOVE(vel),
-              Command.AWAIT(time)),
-            Queue.NIL()));
-    queue:ROOT.tmp:ITEM.prv:ITEM.prv =
-      queue:ROOT.waiting:ITEM.prv;
-    queue:ROOT.waiting =
-      queue:ROOT.tmp;
-  else
-    <...>
+           Command.PAROR(
+            Command.MOVE(vel),
+             Command.AWAIT(time)),
+            Queue.NIL());
+  else/if _strcmp(cmd,"rotate")==0 then
+    <...> // analogous to the MOVE above
   end
+  queue.ROOT.tmp.ITEM.prv =
+    queue.ROOT.waiting.ITEM.prv;
+  queue.ROOT.waiting = queue.ROOT.tmp;
 end
+
 
 
 
@@ -1025,6 +1121,48 @@ end
 \caption{ Queue extension for the Turtle DSL of
           Figures~\ref{lst.turtle.dsl}~and~\ref{lst.turtle.interpreter}.
 \label{lst.turtle.queue}
+}
+\end{figure*}
+
+\begin{figure*}%[t]
+\begin{minipage}[t]{0.24\linewidth}
+\centering
+\includegraphics[scale=0.25]{queue-10.png}
+\end{minipage}
+\begin{minipage}[t]{0.24\linewidth}
+\centering
+\includegraphics[scale=0.25]{queue-11.png}
+\end{minipage}
+\begin{minipage}[t]{0.24\linewidth}
+\centering
+\includegraphics[scale=0.25]{queue-12.png}
+\end{minipage}
+\caption{
+Swapping \code{waiting} and \code{running} commands.
+\label{fig.queue-1}
+}
+\end{figure*}
+
+\begin{figure*}%[t]
+\begin{minipage}[t]{0.24\linewidth}
+\centering
+\includegraphics[scale=0.25]{queue-20.png}
+\end{minipage}
+\begin{minipage}[t]{0.24\linewidth}
+\centering
+\includegraphics[scale=0.25]{queue-21.png}
+\end{minipage}
+\begin{minipage}[t]{0.24\linewidth}
+\centering
+\includegraphics[scale=0.25]{queue-22.png}
+\end{minipage}
+\begin{minipage}[t]{0.24\linewidth}
+\centering
+\includegraphics[scale=0.25]{queue-23.png}
+\end{minipage}
+\caption{
+Enqueuing new commands.
+\label{fig.queue-2}
 }
 \end{figure*}
 
@@ -1067,12 +1205,12 @@ end
 
 ...
 
-\begin{quotation}
+\begin{comment}
 What to compare against???
 
 Found this: http://arxiv.org/pdf/1104.2293.pdf
 Follow the references.
-\end{quotation}
+\end{comment}
 
 \section{Conclusion}
 
