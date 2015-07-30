@@ -295,27 +295,23 @@ with
         else/if _strcmp(cmd,"move") == 0 then
             move_or_rotate = true;
             queue.ROOT.tmp = new Queue.ITEM(
-                                    Command.NOTHING(),
-                                    Queue.ITEM(
-                                      Command.PAROR(
-                                       Command.MOVE(vel),
-                                       Command.AWAIT(time)),
-                                      Queue.NIL()));
+                                  Command.PAROR(
+                                   Command.MOVE(vel),
+                                   Command.AWAIT(time)),
+                                  Queue.NIL());
 
         // ROTATE
         else/if _strcmp(cmd,"rotate") == 0 then
             move_or_rotate = true;
             queue.ROOT.tmp = new Queue.ITEM(
-                                    Command.NOTHING(),
-                                    Queue.ITEM(
-                                      Command.PAROR(
-                                       Command.ROTATE(vel),
-                                       Command.AWAIT(time)),
-                                      Queue.NIL()));
+                                  Command.PAROR(
+                                   Command.ROTATE(vel),
+                                   Command.AWAIT(time)),
+                                  Queue.NIL());
         end
 
         if move_or_rotate then
-            queue.ROOT.tmp.ITEM.prv.ITEM.prv = queue.ROOT.waiting.ITEM.prv;
+            queue.ROOT.tmp.ITEM.prv = queue.ROOT.waiting.ITEM.prv;
             queue.ROOT.waiting = queue.ROOT.tmp;
         end
     end
