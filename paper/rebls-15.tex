@@ -20,6 +20,7 @@
 
 \usepackage{listings}
 %\usepackage{textcomp}
+\usepackage{url}
 \lstset{
 %columns=fullflexible,
 %basicstyle=\ttfamily,
@@ -72,8 +73,8 @@ Hisham Muhammad \\
     \email{hisham@inf.puc-rio.br}
 \alignauthor
 Johnicholas Hines \\
-    \affaddr{Affiliation} \\
-    \email{email@domain.com}
+    \affaddr{IDEXX Laboratories} \\
+    \email{johnicholas-hines@idexx.com}
 }
 
 \maketitle
@@ -554,24 +555,52 @@ the most complex and should follow the logo turtle.
 
 \subsection{Behavior Trees}
 
-The term \emph{Behavior Trees} denotes a family of DSLs used for Game 
-AI~\cite{TODO}.
+The term \emph{Behavior Trees} denotes a family of DSLs used for game 
+AI~\cite{isla2005}~\cite{hecker2009my}.
 The term is loose, because different games use different languages,
-but generally it indicates an interpreted domain-specific language
-for creature behavior that includes at least sequence and selection combinators,
-and which are ``ticked'' periodically~\cite{TODO}.
+but for our purposes it indicates an interpreted domain-specific language
+for concurrent creature behavior that includes sequence and selection combinators.
 
-%\subsubsection{A Standard Behavior Tree}
-
-The semantics of the sequence combinator can be understood as short-circuit evaluation of a conjunction;
-the \code{SEQ} node ticks its left subtree until it finishes,
-and if it finishes successfully, ticks its right subtree until it finishes.
-The semantics of the selection combinator can be understood as short-circuit evaluation of an alternation;
-the \code{SEL} node ticks its left subtree until it finishes,
-and if it did not finish successfully, ticks its right subtree until it finishes.
+The semantics of the sequence node can be understood as short-circuit evaluation of an 'and';
+the \code{SEQ} node evaluates its left subtree until it finishes,
+and if it finishes successfully, evaluates its right subtree until it finishes.
+The semantics of the selection node can be understood as short-circuit evaluation of an 'or';
+the \code{SEL} node evaluates its left subtree until it finishes,
+and if it did not finish successfully, evaluates its right subtree until it finishes.
 
 This skeleton, augmented with leaves that test properties, set properties, perform animations and sounds,
-and other custom combinators, can be preferable to finite state machines (hierarchical, augmented, or otherwise) for authoring Game AI.
+and other custom combinators, can be preferable to finite state machines for authoring game AI.
+
+Because the evaluation of each tree extends across many frames,
+and there are sufficiently many creatures that it is infeasible for each creature to have its own thread,
+writing behavior tree nodes and leaves in other languages is an exercise in stack-ripped event-driven programming~\cite{krohn2007events}.
+By lowering the barrier to writing custom nodes and leaves, \CEU makes behavior trees more flexible.
+Furthermore, the \code{traverse} feature is necessary to retain the runtime-editable quality of behavior trees.
+
+\subsubsection{Behavior trees as a contingent plan}
+
+The leaves of a behavior tree in a blocksworld domain
+might include sensors that quickly either succeed or fail,
+as well as actuators that move blocks and unconditionally succeed.
+
+In this case, we have somehow pinned down the
+situation to two possibilities\footnote{If block 3 is on the table,
+then we should move block 2 from block 3 to block 1,
+and then block 3 from the table to block 2,
+achieving a 123 stack.
+But if block 3 is not on the table,
+we should move block 3 from block 2 to the table,
+and then move block 2 from the table to block 1,
+and then block 3 from the table to block 2,
+again achieving a 123 stack.}.
+This illustrates how the behavior tree can exhibit goal-directed behavior.
+It is not automatic; it is authored.
+
+This tree was actually output from Contingent-FF~\cite{hoffmann2005contingent},
+and the blocksworld domain is one of its benchmark problems.
+Currently \CEU is not used for CPU-intensive tasks such as planning.
+But \code{traverse}, and the easy integration with C allows \CEU to
+to consume the output of planners.
 
 % rebls-15/bts-ceu/btree-1.ceu
 \begin{figure}%[t]
@@ -634,24 +663,24 @@ do
 end
 
 pool BTree[] btree =
-   new BTree.SELECTOR(
+   new BTree.SEL(
       BTree.SEQ(
-         BTree.LEAF(Leaf.SENSEONTABLE(3)),
+         BTree.LEAF(Leaf.SENSE_ON_TABLE(3)),
          BTree.SEQ(
-            BTree.LEAF(Leaf.MOVEBLOCKTOBLOCK(2,3,1)),
-            BTree.LEAF(Leaf.MOVEFROMTABLE(3,2))
+            BTree.LEAF(Leaf.MOVE_B_TO_B(2, 3, 1)),
+            BTree.LEAF(Leaf.MOVE_FROM_T(3, 2))
          )
       ),
       BTree.SEQ(
-         BTree.LEAF(Leaf.MOVETOTABLE(3,2)),
+         BTree.LEAF(Leaf.MOVE_TO_T(3, 2)),
          BTree.SEQ(
-            BTree.LEAF(Leaf.MOVEFROMTABLE(2,1)),
-            BTree.LEAF(Leaf.MOVEFROMTABLE(3,2))
+            BTree.LEAF(Leaf.MOVE_FROM_T(2, 1)),
+            BTree.LEAF(Leaf.MOVE_FROM_T(3, 2))
          )
       )
    );
 
-var int ret = do BTreeTraverse(btree);
+var int ret = do BTreeInterpreter(btree);
 
 _printf("ret = %d\n", ret);     // prints "3"
 \end{lstlisting}
@@ -679,9 +708,6 @@ _printf("ret = %d\n", ret);     // prints "3"
 %\end{figure}
 
 %\subsubsection{Parallel Behavior Tree}
-
-Ceu's parallel features make implementing a parallel combinator for behavior 
-trees much easier.
 
 \begin{comment}
 Most "standard" BTs I found have these "sequence" and "selector" composite 
