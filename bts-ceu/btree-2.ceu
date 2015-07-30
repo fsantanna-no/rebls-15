@@ -1,9 +1,7 @@
-/*
- * BTREE.CEU
- *  - defines and implements "SEQ", "PAR", and "LEAF" traversal.
- *  - depends on the "Leaf" data type and the "LeafHandler" class.
- *      (no polymorphism)
- */
+// BTREE.CEU
+//  - defines and implements "SEQ", "PAR", and "LEAF" traversal.
+//  - depends on the "Leaf" data type and the "LeafHandler" class.
+//      (no polymorphism)
 
 data BTree with
     tag NIL;
