@@ -117,43 +117,69 @@ Logo, Recursive Data Types, Structured Programming, Reactive Programming}
 
 \section{Introduction}
 
-\begin{quotation}
-All examples have working implementations:
+The facilities offered by a language for constructing data types and values
+have a direct impact on the nature of algorithms that programmers of that
+language will write. The design of such facilities, on its turn, must take
+into account the constraints imposed by the rest of the language. For example,
+functional languages aim for referential transparency, and for this reason
+they typically present recursive data types as constructors for immutable data
+structures. One must then take care when writing algorithms using those
+structures to avoid excessive memory copying. A means to do that is to use
+data structures that alleviate the lack of random access to components and
+in-place modification, such as the ones presented by Okasaki in
+\cite{okasaki.purely}.
 
-- TODO: compare the real code with the listing
+In this paper, we discuss the design of recursive data types and an associated
+control facility for a language developed under a different set of
+constraints. \CEU~\cite{ceu.sensys13} is an imperative, concurrent and
+reactive language in which the lines of execution, known as \emph{trails},
+react all together continuously and in synchronous steps to external stimuli.
+Being an imperative language, \CEU features mutable data. At the same time,
+however, its design promotes static memory management through lexically-scoped
+memory pools, and safety guarantees for concurrent pointer manipulation
+through orthogonal abortion~\cite{ceu.mod15}. These features preclude the
+availability of general mutable records such as C-style structs with arbitrary
+pointers. Recursive data types in \CEU must, therefore, respect the language's
+memory management guarantees and their use must cope with the synchronous
+concurrency model.
 
-\begin{itemize}
-\item label "lst.list":               rebls-15/list/list.ceu
-\item label "lst.list.sum":           rebls-15/list/list.ceu
-\item label "lst.list.sum.react":     rebls-15/list/list.ceu
+The solution to this problem is twofold, with data and control aspects to it.
+For data management, we introduce to the language a \code{data} type construct
+with a set of restrictions on instance constructors and assignment semantics
+that makes static memory management possible. For handling reactive control,
+we propose a structured mechanism to traverse recursive data types
+incrementally, in successive reactions to input events. \code{traverse} is an
+iterator-like anonymous block that can be invoked recursively and suspended at
+any point, retaining the full state and stack frames alive.
+
+Following the presentation of these constructs and their design, we showcase
+their use by discussing three applications in the domains of incremental
+computation and control-oriented DSLs that contain reactive and recursive
+behavior at the same time.
+
+%\begin{quotation}
+%All examples have working implementations:
 %
-\item label "lst.bt1":                rebls-15/bts-ceu/btree-1.ceu
-\item label "lst.bt1.interpreter":    rebls-15/bts-ceu/btree-1.ceu
-\item label "lst.bt1.leaf":           rebls-15/bts-ceu/domain-1.ceu
+%- TODO: compare the real code with the listing
 %
-\item label "lst.turtle.dsl":         rebls-15/turtle/turtle-2.ceu
-\item label "lst.turtle.interpreter": rebls-15/turtle/turtle-2.ceu
-\item label "lst.turtle.queue":       rebls-15/turtle/turtle-7.ceu
-%
-\item label "lst.gray":               rebls-15/loopless/gray/gray-vec.ceu
-\end{itemize}
-\end{quotation}
+%\begin{itemize}
+%\item label "lst.list":               rebls-15/list/list.ceu
+%\item label "lst.list.sum":           rebls-15/list/list.ceu
+%\item label "lst.list.sum.react":     rebls-15/list/list.ceu
+%%
+%\item label "lst.bt1":                rebls-15/bts-ceu/btree-1.ceu
+%\item label "lst.bt1.interpreter":    rebls-15/bts-ceu/btree-1.ceu
+%\item label "lst.bt1.leaf":           rebls-15/bts-ceu/domain-1.ceu
+%%
+%\item label "lst.turtle.dsl":         rebls-15/turtle/turtle-2.ceu
+%\item label "lst.turtle.interpreter": rebls-15/turtle/turtle-2.ceu
+%\item label "lst.turtle.queue":       rebls-15/turtle/turtle-7.ceu
+%%
+%\item label "lst.gray":               rebls-15/loopless/gray/gray-vec.ceu
+%\end{itemize}
+%\end{quotation}
 
-\begin{comment}
-Difficult because of
-    multiple stack frames
-    concurrent stack frames
-    persistent stack frames (across reactions, with other parts executing)
-    static memory management
-    mutation of the data structure being traversed
-\end{comment}
-
-... \CEU~\cite{ceu.sensys13,ceu.mod15}
-
-...
-
-\newpage
-\section{C\'eu}
+\section{C\'eu constructs}
 
 \begin{comment}
 \item adts
@@ -184,9 +210,10 @@ end
 }
 \end{figure}
 
-\CEU is a concurrent and reactive language in which the lines of execution, 
-known as \emph{trails}, react all together continuously and in synchronous 
-steps to external stimuli.
+In this section, we present the constructs added to \CEU to support recursive
+data types with reactive traversal. We begin, though, with a short
+introduction to present the general flavor of the language.
+
 The introductory example in Figure~\ref{lst.intro} defines an input event 
 \code{RESET} (line 1), a shared variable \code{v} (line 2), and starts two 
 trails with the \code{par} construct (lines 3-14): the first (lines 4-8) 
@@ -335,6 +362,8 @@ and pointers to subtrees (i.e., weak references) must be observed via the
 \code{watching} construct, as they can be invalidated at any time
 (to be discussed in Section~\ref{sec.traverse}).
 
+%TODO: what kind of structure updates can be made through weak pointers?
+
 \subsection{Traversing Data Types}
 \label{sec.traverse}
 
@@ -433,7 +462,7 @@ construct that watches for mutations of the current node. In practice, this
 means that it reacts consistently if another trail of execution modifies the
 data structure being traversed.
 
-To illustrate these differences, Figure~\ref{lst.sum.react} extends the body
+To illustrate these differences, Figure~\ref{lst.list.sum.react} extends the body
 of the previous example with reactive behavior.
 For each recursive iteration, \code{traverse} prints the current 
 \code{head} (line 8) and awaits 1 second before traversing the \code{tail} 
@@ -742,6 +771,32 @@ end
 }
 \end{figure}
 
+%% rebls-15/turtle/turtle-2.ceu
+%\begin{figure}%[t]
+%\begin{lstlisting}[numbers=left,xleftmargin=3em]
+%data Command with
+%   tag NOTHING;
+%or
+%   tag SEQ    with var Command one, two; end
+%or
+%   tag REPEAT with var int times;
+%                   var Command command;  end
+%or
+%   tag MOVE   with var int pixels;       end
+%or
+%   tag ROTATE with var int angle;        end
+%or
+%   tag AWAIT  with var int ms;           end
+%or
+%   tag PAROR  with var Command one, two; end
+%end
+%\end{lstlisting}
+%%\rule{8.5cm}{0.37pt}
+%\caption{ DSL for a Logo turtle.
+%\label{lst.turtle.dsl}
+%}
+%\end{figure}
+
 Figure~\ref{lst.turtle.interpreter} depicts the interpreter. It is implemented
 as the \code{Interpreter} organism (declared with the \code{class} keyword).
 It holds as attributes a reference to the AST of commands (\code{cmds}, line 2)
@@ -821,13 +876,14 @@ end
 \end{figure}
 
 \subsubsection{Enqueuing Commands}
+\label{sub.enqueuing}
 
 All examples so far create a fixed tree that does not vary during traversal.
 %
 Figure~\ref{lst.turtle.queue} extends the Turtle application with a queue of 
 pending commands to execute after the running commands terminate.
 We define a new \code{Queue} data type in (\emph{CODE-1}):
-\code{ROOT} has a \code{runnning} subtree with the running commands, a 
+\code{ROOT} has a \code{running} subtree with the running commands, a 
 \code{waiting} queue of pending commands to execute, and a \code{tmp} node that 
 allows in-place manipulation of the tree.
 Given that all newly allocated nodes must reside in a pool, the \code{tmp} node 
@@ -984,13 +1040,50 @@ Follow the references.
 
 \section{Conclusion}
 
-...
+We presented a new construct for traversing recursive data types
+incrementally, in the context of \CEU, an imperative reactive language with
+synchronous concurrency. The \code{traverse} construct encapsulates an idiom
+for performing recursive traversal by handling each step as a separate trail
+of execution. This allows parallel traversal using the language's concurrency
+features, while maintaining its safety properties.
+
+This kind of traversal can be performed in \CEU through the use of organisms
+(pooled objects which launch their own execution trails) and orthogonal
+abortion via the \code{watching} construct. Combining these features to
+traverse a recursive data structure correctly, however, is not straightforward.
+Recursing in a way such that parallel constructs can be composed requires each
+step of the recursion to be a new execution trail. Ensuring that the traversal
+will not execute on a stale subtree in case the structure is modified requires
+the nodes to be watched in order to perform abortions. Additionally, by
+presenting a control construct that is tied to a data structure, we can ensure
+bounded execution time, in line with the \CEU philosophy. By dealing with these
+concerns internally in the \code{traverse} statement, we make reactive
+traversal as easy to perform correctly as a recursive function call.
+
+%TODO: mention/review other examples
+
+\begin{comment}
+Difficult because of
+    multiple stack frames
+    concurrent stack frames
+    persistent stack frames (across reactions, with other parts executing)
+    -DONE- static memory management
+    -DONE- mutation of the data structure being traversed
+\end{comment}
+
+In the current implementation of recursive data types in \CEU, we impose
+restrictions to the kinds of structures that can be represented. The
+requirement of a tree hierarchy of ownership and move semantics for assignment
+of structure fields requires care in the design of algorithms
+manipulating these structures, as illustrated in Section \ref{sub.enqueuing}.
+This is done to support static memory management with bounded memory pools for
+allocation and deterministic deallocation. Still, we do not feel that the
+restrictions are prohibitively limiting. For instance, persistent data
+structures in functional languages \cite{TODO} operate under tighter design constraints.
 
 Limitations:
 
 - high-order programming
-
-- planar-only recursive data types
 
 \bibliographystyle{abbrv}
 \bibliography{rebls-15}
