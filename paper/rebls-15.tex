@@ -524,16 +524,13 @@ Calculating the \emph{sum} of a list.
 
 \section{Applications}
 
-In this section, we present three applications that explore the reactive and 
+In this section, we present two applications that explore the reactive and 
 incremental nature of the \code{traverse} construct.
 We start with standard \emph{Behavior Trees} used in video games for AI 
-modeling~\cite{TODO}, and extend them with parallel compositions.
-Then, we show a \emph{Logo Turtle}~\cite{TODO} that can execute commands in 
+modeling~\cite{isla2005}~\cite{hecker2009my}.
+Then, we show a \emph{Logo Turtle}~\cite{papert.logo} that can execute commands in 
 parallel (e.g., \code{move} and \code{rotate}) and also incorporates a dynamic 
 queue of commands issued concurrently with the running program.
-Finally, we implement \emph{Gray code} generation~\cite{TODO} to illustrate how 
-\code{traverse} can also be used for more general recursive algorithms without 
-an associated data type.
 
 \begin{comment}
 How many applications will we present?
@@ -542,21 +539,18 @@ How many applications will we present?
     \item behavior trees (DSL)
     \item logo turtle (DSL)
     \item turtle stream (incremental)
-    \item gray code gen (incremental)
 \end{itemize}
 
-I suggest gray code as the last one because it does not use a data type.
-We could show as an example of flexibility of traverse.
 BTs before turtle because they are simpler and because the stream example is 
 the most complex and should follow the logo turtle.
 \end{comment}
 
 \subsection{Behavior Trees}
 
-The term \emph{Behavior Trees} denotes a family of DSLs used for game 
-AI~\cite{isla2005}~\cite{hecker2009my}.
-The term is loose, because different games use different languages,
-but for our purposes it indicates an interpreted domain-specific language
+\emph{Behavior Trees} are a family of DSLs used for game 
+AI.
+The term is loose, because different games use different languages.
+For our purposes it indicates an interpreted domain-specific language
 for concurrent creature behavior that includes sequence and selection combinators.
 
 The semantics of the sequence node can be understood as short-circuit evaluation of an `and';
@@ -573,34 +567,32 @@ Because the evaluation of each tree extends across many frames,
 and there are sufficiently many creatures that it is infeasible for each creature to have its own thread,
 writing behavior tree nodes and leaves in other languages is an exercise in stack-ripped event-driven programming~\cite{krohn2007events}.
 By lowering the barrier to writing custom nodes and leaves, \CEU makes behavior trees more usable.
-Furthermore, \code{traverse} is necessary to retain the runtime-editable quality of behavior trees.
 
-\subsubsection{Behavior trees as a contingent plan}
-
-The leaves of a behavior tree in a blocks world domain
+The leaves of a behavior tree in a blocks domain
 might include sensors that quickly either succeed or fail,
 as well as actuators that move blocks and unconditionally succeed.
 
 In this case, we have somehow pinned down the
-situation to two possibilities\footnote{If block 3 is on the table,
-then we should move block 2 from block 3 to block 1,
-and then block 3 from the table to block 2,
+situation to two possibilities\footnote{If 3 is on the table,
+then we should move 2 from 3 to 1,
+and then 3 from the table to 2,
 achieving a 123 stack.
-But if block 3 is not on the table,
-we should move block 3 from block 2 to the table,
-and then move block 2 from the table to block 1,
-and then block 3 from the table to block 2,
+But if 3 is not on the table,
+we should move 3 from 2 to the table,
+and then move 2 from the table to 1,
+and then 3 from the table to 2,
 also achieving a 123 stack.}.
 We use a \code{SEL} node and a sensor leaf to decide which strategy is appropriate,
 and \code{SEQ} nodes and actuator leaves to execute it.
 This illustrates how the behavior tree can exhibit goal-directed behavior.
-It is not automatic; it is authored.
+The goal-directedness is not usually automatic; rather, behavior trees are authored.
+The \code{traverse} feature allows behavior to be authored by 
+editing a script that is interpreted at runtime.
 
-This tree was actually output from Contingent-FF~\cite{hoffmann2005contingent},
-and the blocksworld domain is one of its benchmark problems.
-Currently \CEU is not used for CPU-intensive tasks such as planning.
-But \code{traverse}, and the easy integration with C allows \CEU to
-to consume the output of planners.
+The tree in Figure~\ref{lst.bt1.example} is based on output from Contingent-FF~\cite{hoffmann2005contingent},
+and the blocks domain is one of its benchmark problems.
+The \code{traverse} feature and integration with C allows \CEU to
+to consume the output of CPU-intensive algorithms at runtime.
 
 % rebls-15/bts-ceu/btree-1.ceu
 \begin{figure}%[t]
@@ -617,7 +609,7 @@ end
 
 \end{lstlisting}
 %\rule{8.5cm}{0.37pt}
-\caption{ A standard behavior tree with \emph{sequence} and \emph{selector}
+\caption{ A simple generic grammar of behavior trees with \emph{sequence} and \emph{selector}
           composite nodes.
 \label{lst.bt1}
 }
@@ -653,7 +645,16 @@ do
       end;
    escape ret;
 end
+\end{lstlisting}
+%\rule{8.5cm}{0.37pt}
+\caption{ A straightforward interpreter for the behavior tree of 
+          Figure~\ref{lst.bt1}.
+\label{lst.bt1.interpreter}
+}
+\end{figure}
 
+\begin{figure}%[t]
+\begin{lstlisting}[numbers=left,xleftmargin=3em]
 pool BTree[] btree =
    new BTree.SEL(
       BTree.SEQ(
@@ -671,15 +672,11 @@ pool BTree[] btree =
          )
       )
    );
-
 var int ret = do BTreeInterpreter(btree);
-
-_printf("ret = %d\n", ret);     // prints "3"
 \end{lstlisting}
 %\rule{8.5cm}{0.37pt}
-\caption{ A straightforward interpreter for the standard behavior tree of 
-          Figure~\ref{lst.bt1} and a blocksworld tree to execute.
-\label{lst.bt1.interpreter}
+\caption{ An example blocks behavior tree.
+\label{lst.bt1.example}
 }
 \end{figure}
 
@@ -1179,41 +1176,6 @@ Enqueuing new commands.
 \label{fig.queue-2}
 }
 \end{figure*}
-
-\subsection{Gray Code Generation}
-
-% rebls-15/loopless/gray/gray-vec.ceu
-\begin{figure}%[t]
-\begin{lstlisting}[numbers=left,xleftmargin=3em]
-var int[4] bits = [0, 0, 0, 0];
-
-par/or do
-   every VISIT do
-      _printf("( ");
-      loop i in $$bits do // $$ is the array size
-         _printf("%d ", bits[i]);
-      end
-      _printf(")\n");
-   end
-with
-   traverse idx in [$$bits] do
-      if idx == $$bits then
-         await NEXT;
-      else
-         traverse idx + 1;
-         bits[idx] = 1 - bits[idx];
-         traverse idx + 1;
-      end
-   end
-end
-\end{lstlisting}
-%\rule{8.5cm}{0.37pt}
-\caption{ Generator for 4-bit Gray code.
-\label{lst.gray}
-}
-\end{figure}
-
-
 
 \section{Related Work}
 
