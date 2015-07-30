@@ -1074,6 +1074,71 @@ end
 \end{figure*}
 
 \begin{figure*}%[t]
+\begin{minipage}[t]{0.45\linewidth}
+\begin{lstlisting}[title=CODE-1: Original code (with \code{traverse})]
+pool List[10] lst;
+var int id1 = <...>;
+
+var int id2 = traverse e in lst do
+                 var int id3 = traverse e:CONS.tail;
+                 escape id1 + id3;
+              end;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+.
+\end{lstlisting}
+\end{minipage}
+%
+\begin{minipage}[t]{0.51\linewidth}
+\begin{lstlisting}[numbers=left,xleftmargin=3.5em,title=CODE-2: Expanded code (without \code{traverse})]
+pool List[10] lst;
+var int id1 = <...>;
+
+class Body with
+   pool Body[10]& bodies;
+   var  Body&     parent;
+   var  Main&     outer;
+   pool List[10]* e;
+do
+   watching this.parent do
+      var Body* body = spawn Body(this.bodies, &this,
+                                  &this.outer,
+                                  &lst:CONS.tail);
+                       in this.bodies;
+      var int id3 = await *body;
+      escape this.outer.id1 + id3;
+  end
+  escape 0;
+end
+pool Body[10] bodies;
+
+var Body* body = spawn Body(bodies,&this,&this,&lst)
+                 in bodies;
+var int id2 = await *body;
+\end{lstlisting}
+\end{minipage}
+%
+%\rule{17.5cm}{0.37pt}
+\caption{ ``Desugaring'' of the \code{traverse} construct.
+\label{lst.expansion}
+}
+\end{figure*}
+
+\begin{figure*}%[t]
 \begin{minipage}[t]{0.24\linewidth}
 \centering
 \includegraphics[scale=0.25]{queue-10.png}
