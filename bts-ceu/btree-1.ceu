@@ -32,19 +32,19 @@ do
     var int ok =
         traverse t in btree do
             if t:SEQUENCE then
-                var int ok1 = traverse t:SEQUENCE.first;
-                if ok1 == 0 then
-                    escape ok1;
+                var int ok = traverse t:SEQUENCE.first;
+                if ok == 0 then
+                    escape ok;
                 end
-                var int ok2 = traverse t:SEQUENCE.second;
-                escape ok2;
+                ok = traverse t:SEQUENCE.second;
+                escape ok;
             else/if t:SELECTOR then
-                var int ok1 = traverse t:SELECTOR.first;
-                if ok1 > 0 then
-                    escape ok1;
+                var int ok = traverse t:SELECTOR.first;
+                if ok != 0 then
+                    escape ok;
                 end
-                var int ok2 = traverse t:SELECTOR.second;
-                escape ok2;
+                var int ok = traverse t:SELECTOR.second;
+                escape ok;
             else/if t:LEAF then
                 var int ok =
                     do LeafHandler with     // LeafHandler must be defined elsewhere

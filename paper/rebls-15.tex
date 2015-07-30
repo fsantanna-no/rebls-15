@@ -571,20 +571,19 @@ do
    var int ret =
       traverse t in btree do
          if t:SEQ then
-            var int ret1 = traverse t:SEQ.first;
-            if ret1 > 0 then
-               var int ret2 = traverse t:SEQ.second;
-               if ret2 > 0 then
-                  escape ret1+ret2;
-               end
-            end
-            escape 0;
+             var int ok = traverse t:SEQ.first;
+             if ok == 0 then
+                 escape ok;
+             end
+             ok = traverse t:SEQ.second;
+             escape ok;
          else/if t:SEL then
-            var int ret = traverse t:SEQ.first;
-            if ret == 0 then
-               ret = traverse t:SEL.second;
-            end
-            escape ret;
+             var int ok = traverse t:SEL.first;
+             if ok != 0 then
+                 escape ok;
+             end
+             ok = traverse t:SEL.second;
+             escape ok;
          else/if t:LEAF then
             var int ret =
                 do LeafHandler(t:LEAF.leaf);
@@ -594,12 +593,23 @@ do
    escape ret;
 end
 
-pool BTree[] btree = new
-   BTree.SEQ(
-      BTree.SEL(
-         BTree.LEAF(Leaf(0)),
-         BTree.LEAF(Leaf(1))),
-      BTree.LEAF(Leaf(2)));
+pool BTree[] btree =
+    new BTree.SELECTOR(
+        BTree.SEQ(
+            BTree.LEAF(Leaf.SENSEONTABLE(3)),
+            BTree.SEQ(
+                BTree.LEAF(Leaf.MOVEBLOCKTOBLOCK(2, 3, 1)),
+                BTree.LEAF(Leaf.MOVEFROMTABLE(3, 2))
+            )
+        ),
+        BTree.SEQ(
+            BTree.LEAF(Leaf.MOVETOTABLE(3, 2)),
+            BTree.SEQ(
+                BTree.LEAF(Leaf.MOVEFROMTABLE(2, 1)),
+                BTree.LEAF(Leaf.MOVEFROMTABLE(3, 2))
+            )
+        )
+    );
 
 var int ret = do BTreeTraverse(btree);
 
@@ -607,26 +617,26 @@ _printf("ret = %d\n", ret);     // prints "3"
 \end{lstlisting}
 %\rule{8.5cm}{0.37pt}
 \caption{ A straightforward interpreter for the standard behavior tree of 
-          Figure~\ref{lst.bt1} and a sample tree to execute.
+          Figure~\ref{lst.bt1} and a blocksworld tree to execute.
 \label{lst.bt1.interpreter}
 }
 \end{figure}
 
-% rebls-15/bts-ceu/domain-1.ceu
-\begin{figure}%[t]
-\begin{lstlisting}[numbers=left,xleftmargin=3em]
-class LeafHandler with
-   var Leaf& leaf;
-do
-   // TODO: what to show here?
-   escape leaf.v;
-end
-\end{lstlisting}
-%\rule{8.5cm}{0.37pt}
-\caption{ A leaf node with complex behavior.
-\label{lst.bt1.leaf}
-}
-\end{figure}
+%% rebls-15/bts-ceu/domain-1.ceu
+%\begin{figure}%[t]
+%\begin{lstlisting}[numbers=left,xleftmargin=3em]
+%class LeafHandler with
+%   var Leaf& leaf;
+%do
+%   // TODO: what to show here?
+%   escape leaf.v;
+%end
+%\end{lstlisting}
+%%\rule{8.5cm}{0.37pt}
+%\caption{ A leaf node with complex behavior.
+%\label{lst.bt1.leaf}
+%}
+%\end{figure}
 
 %\subsubsection{Parallel Behavior Tree}
 
