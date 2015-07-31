@@ -7,6 +7,7 @@ native do
     ##define SDL_MATH
 end
 
+#include "c.ceu"
 #include "sdl.ceu"
 #include "sdl-gfx.ceu"
 
@@ -43,7 +44,23 @@ end
 
 var int ex = 1;
 
-#define MAX 3
+#define MAX 4
+
+class Intro with
+    var char* title;
+do
+    loop i in 30 do
+        _printf("\n");
+    end
+    _printf("================================\n");
+    _printf("%s\n", this.title);
+    _printf("================================\n");
+    await 2s;
+    loop i in 30 do
+        await 200ms;
+        _printf("\n");
+    end
+end
 
 par/or do
     loop do
@@ -65,26 +82,30 @@ par/or do
                 #include "list/list.ceu"
             else/if ex == 2 then
                 #undef  Title
-                #define Title   Title2
-                #define Command Command2
-                #define Turtle  Turtle2
-                #define Interpreter Interpreter2
-                #define TurtleMove   TurtleMove2
-                #define TurtleRotate TurtleRotate2
-                #include "turtle/turtle-2.ceu"
+                #define Title Title2
+                #include "bts-ceu/text-domain.ceu"
             else/if ex == 3 then
+                #undef  Title
+                #define Title   Title3
+                #define Command Command3
+                #define Turtle  Turtle3
+                #define Interpreter Interpreter3
+                #define TurtleMove   TurtleMove3
+                #define TurtleRotate TurtleRotate3
+                #include "turtle/turtle-2.ceu"
+            else/if ex == 4 then
                 #undef  Title
                 #undef  Command
                 #undef  Turtle
                 #undef  TurtleRotate
                 #undef  TurtleMove
                 #undef  Interpreter
-                #define Title   Title3
-                #define Command Command3
-                #define Interpreter Interpreter3
-                #define Turtle  Turtle3
-                #define TurtleMove   TurtleMove3
-                #define TurtleRotate TurtleRotate3
+                #define Title   Title4
+                #define Command Command4
+                #define Interpreter Interpreter4
+                #define Turtle  Turtle4
+                #define TurtleMove   TurtleMove4
+                #define TurtleRotate TurtleRotate4
                 #include "turtle/turtle-7.ceu"
             else
                 await FOREVER;

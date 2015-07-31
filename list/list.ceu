@@ -1,6 +1,12 @@
 #define HEADER_TITLE "List Data Type"
 #include "../header.ceu"
 
+#ifdef ALL
+do Intro with
+    this.title = "Example of Figures 2-4:\n > Lists";
+end;
+#endif
+
 data List with
     tag NIL;
 or
@@ -10,8 +16,14 @@ or
     end
 end
 
+_printf("--------------------------------\n");
+_printf("Example of Figure 2:\n");
+_printf(" > 1st block\n");
+_printf("--------------------------------\n");
+_printf("\n");
+await 2s;
+
 // lst.list
-_printf("\n>>> lst.list (1st block)\n");
 do
     pool List[1] list;
     list = new List.CONS(10,
@@ -23,8 +35,18 @@ do
         // prints 10, 1
 end
 
+_printf("\n");
+_printf("\n");
+await 2s;
+
+_printf("--------------------------------\n");
+_printf("Example of Figure 2:\n");
+_printf(" > 2nd block\n");
+_printf("--------------------------------\n");
+_printf("\n");
+await 2s;
+
 // lst.list
-_printf("\n>>> lst.list (2nd block)\n");
 do
     pool List[] list;
     list = new List.CONS(10,
@@ -36,8 +58,18 @@ do
         // prints 50 (20 and 30 have been freed)
 end
 
+_printf("\n");
+_printf("\n");
+await 2s;
+
+_printf("--------------------------------\n");
+_printf("Example of Figure 3:\n");
+_printf(" > Sum of a list\n");
+_printf("--------------------------------\n");
+_printf("\n");
+await 2s;
+
 // lst.list.sum
-_printf("\n>>> lst.list.sum\n");
 do
     pool List[] list = new
         List.CONS(10,
@@ -58,8 +90,18 @@ do
     _printf("SUM = %d\n", sum);
 end
 
+_printf("\n");
+_printf("\n");
+await 2s;
+
+_printf("--------------------------------\n");
+_printf("Example of Figure 3:\n");
+_printf(" > Reactive sum of a list\n");
+_printf("--------------------------------\n");
+_printf("\n");
+await 2s;
+
 // lst.list.sum.react
-_printf("\n>>> lst.list.sum.react\n");
 do
 #ifndef ALL
     class Input with
@@ -96,6 +138,9 @@ do
         _printf("sum = %d\n", sum);
     end
 end
+
+await 2s;
+_printf("\n\n > OK\n");
 
 #ifdef ALL
 await FOREVER;

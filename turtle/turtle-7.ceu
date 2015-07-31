@@ -4,8 +4,14 @@
 
 // lst.turtle.queue
 
-#define HEADER_TITLE "Logo Turtle"
+#define HEADER_TITLE "Enqueuing Commands"
 #include "../header.ceu"
+
+#ifdef ALL
+do Intro with
+    this.title = "Example of Figure 9\n > Enqueuing Commands";
+end;
+#endif
 
 data Command with
     tag NOTHING;
