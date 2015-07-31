@@ -44,8 +44,9 @@ escapeinside={||},
     breaklines=false, % sets automatic line breaking
     %breakatwhitespace=false,
     numbersep=2em,
+    % C was used in the blocksworld example to refer to block C and nowhere else
     emph={par,or,hor,do,end,loop,await,emit,input,event,call,with,%
-          var,and,then,else,C,return,pure,deterministic,nohold,finalize,%
+          var,and,then,else,return,pure,deterministic,nohold,finalize,%
           class, every, FOREVER, this, spawn, in, pool, watching, until, 
           interface, each, abort, when, signal, PROC, CHAN, SIGNAL, PAR, not,
           bool, data, tag, escape, new, traverse},
@@ -690,19 +691,13 @@ commands that can affect the running program.
 
 \subsection{Behavior Trees}
 
-\emph{Behavior Trees} are a family of DSLs used for game 
-AI.
+\emph{Behavior Trees} are a family of DSLs used for game AI.
 The term is loose, because different games use different languages.
 For our purposes it indicates an interpreted domain-specific language
 for concurrent creature behavior that includes sequence and selection combinators.
 
-The semantics of the sequence node can be understood as short-circuit evaluation of an `and';
-the \code{SEQ} node evaluates its left subtree until it finishes,
-and if it finishes successfully, evaluates its right subtree until it finishes.
-The semantics of the selection node can be understood as short-circuit evaluation of an `or';
-the \code{SEL} node evaluates its left subtree until it finishes,
-and if it did not finish successfully, evaluates its right subtree until it finishes.
-
+The \code{SEQ} can be understood as short-circuit evaluation of an `and',
+while the \code{SEL} corresponds to an `or'.
 This skeleton is extensible with leaves to test properties, set properties, 
 perform animations and sounds, etc., and is an effective alternative to finite 
 state machines for authoring game AI.
@@ -797,56 +792,48 @@ A simple generic grammar of behavior trees with \emph{sequence} and
 }
 \end{figure}
 
-TODO: need to explain "blocks domain" before
-
-The leaves of a behavior tree in a blocks domain
-might include sensors that quickly either succeed or fail,
-as well as actuators that move blocks and unconditionally succeed.
+The blocks world is a classical planning domain~\cite{slaney2001blocks}.
+The leaves of a behavior tree in an extended blocks world domain
+might include sensor leaves that either succeed or fail,
+as well as actuator leaves that move blocks and unconditionally succeed.
+The tree in Figure~\ref{lst.bt1.example} is based on output from Contingent-FF~\cite{hoffmann2005contingent},
+and the blocks domain extended with sensor actions is one of Contingent-FF's benchmark problems.
 
 In this case, we have somehow pinned down the
-situation to two possibilities\footnote{If 3 is on the table,
-then we should move 2 from 3 to 1,
-and then 3 from the table to 2,
-achieving a 123 stack.
-But if 3 is not on the table,
-we should move 3 from 2 to the table,
-and then move 2 from the table to 1,
-and then 3 from the table to 2,
-also achieving a 123 stack.}.
-
-TODO: what is 1,2,3? (can use concrete names instead?)
-
+situation to two possibilities.
+%
 We use a \code{SEL} node and a sensor leaf to decide which strategy is appropriate,
 and \code{SEQ} nodes and actuator leaves to execute it.
 This illustrates how the behavior tree can exhibit goal-directed behavior.
-The goal-directedness is not usually automatic; rather, behavior trees are authored.
-The \code{traverse} feature allows behavior to be authored by 
-editing a script that is interpreted at runtime.
-
-The tree in Figure~\ref{lst.bt1.example} is based on output from Contingent-FF~\cite{hoffmann2005contingent},
-and the blocks domain is one of its benchmark problems.
-The \code{traverse} feature and integration with C allows \CEU to
-to consume the output of CPU-intensive algorithms at runtime.
+The goal-directedness is not automatic; rather, behavior trees are authored
+by designers to exhibit goal-directedness.
+The \code{traverse} feature allows runtime-authored behavior, 
+which is one of the crucial features of behavior trees.
+Alternatively, \code{traverse} allows \CEU to
+to consume at runtime the output of CPU-intensive algorithms such as planners.
 
 \begin{figure}[t]
 \begin{lstlisting}[numbers=left,xleftmargin=3em]
-pool BTree[] btree =
-  new SEL(
-         SEQ(
-            LEAF(SENSE_ON_TABLE(3)),
-            SEQ(
-               LEAF(MOVE_B_TO_B(2, 3, 1)),
-               LEAF(MOVE_FROM_T(3, 2)))),
-         SEQ(
-            LEAF(MOVE_TO_T(3, 2)),
-            SEQ(
-               LEAF(MOVE_FROM_T(2, 1)),
-               LEAF(MOVE_FROM_T(3, 2)))));
-
-var int ret = do BTreeInterpreter(btree);
+pool BTree[] btree = new SEQ(SEL(SEQ(
+      LEAF(SENSE_ON_TABLE(C)),
+      LEAF(MOVE_BLOCK_TO_BLOCK(B, C, A))),
+    SEQ(
+      LEAF(MOVE_TO_TABLE(C, B)),
+      LEAF(MOVE_FROM_TABLE(B, A)))),
+  LEAF(MOVE_FROM_TABLE(C, B)));
 \end{lstlisting}
+\centerline{\includegraphics[scale=0.5]{blocksworld.eps}}
 %\rule{8.5cm}{0.37pt}
-\caption{ An example blocks behavior tree.
+\caption{ A blocks world behavior tree.
+If C is on the table,
+then we move B from C to A,
+and C from the table to B,
+achieving an ABC stack.
+But if C is not on the table,
+we move C from B to the table,
+B from the table to A,
+and C from the table to B,
+also achieving an ABC stack.
 \label{lst.bt1.example}
 }
 \end{figure}
@@ -871,8 +858,8 @@ tag (line 6).
 %
 Our variant extends the \code{MOVE} and \code{ROTATE} commands to take as 
 arguments the speed at which they should affect the turtle (lines 8 and 12).
-For example, a \code{Command.MOVE(50)} node directs the turtle to move at the 
-speed of 50 pixels per second, indefinitely.
+For example, a \code{Command.MOVE(300)} node directs the turtle to move at the 
+speed of 300 pixels per second, indefinitely.
 %
 Therefore, the only way to make the turtle stop moving or rotating is through 
 two \CEU-like extensions added to our Logo variant:
@@ -987,13 +974,13 @@ end
 pool Command[] cmds =
    new PAROR(
          AWAIT(1000),
-         PAROR(MOVE(50), ROTATE(180)));
+         PAROR(MOVE(300), ROTATE(180)));
 
 var Turtle turtle;
 do CommandInterpreter(turtle, cmds);
 \end{lstlisting}
 %\rule{8.5cm}{0.37pt}
-\caption{ An example blocks behavior tree.
+\caption{ A turtle program.
 \label{lst.turtle.example}
 }
 \end{figure}

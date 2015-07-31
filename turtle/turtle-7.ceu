@@ -4,32 +4,8 @@
 
 // lst.turtle.queue
 
-#include "sdl.ceu"
-#include "sdl-gfx.ceu"
-
-input void SDL_REDRAW;
-input void SDL_QUIT;
-input int  SDL_DT;
-
-var _SDL_Window&? win;
-    finalize
-        win = _SDL_CreateWindow("Logo", _SDL_WINDOWPOS_CENTERED,
-                                        _SDL_WINDOWPOS_CENTERED,
-                                        400, 400,
-                                        _SDL_WINDOW_SHOWN);
-    with
-        _SDL_DestroyWindow(&win);
-    end
-
-var int w, h;
-_SDL_GetWindowSize(&win, &w, &h);
-
-var _SDL_Renderer&? ren;
-    finalize
-        ren = _SDL_CreateRenderer(&win, -1, 0);
-    with
-        _SDL_DestroyRenderer(&ren);
-    end
+#define HEADER_TITLE "Logo Turtle"
+#include "../header.ceu"
 
 data Command with
     tag NOTHING;
@@ -91,17 +67,16 @@ pool Queue[20] queue = new
 
 
 class Turtle with
-    var _SDL_Renderer& ren;
-    var SDL_Point      pos   = SDL_Point(200,200);
-    var int            angle = 180;
+    var SDL_Point pos   = SDL_Point(200,200);
+    var int       angle = 180;
 do
     every SDL_REDRAW do
-        _filledCircleRGBA(&ren, pos.x,pos.y, 25,
+        _filledCircleRGBA(_REN, pos.x,pos.y, 25,
                                 0x00,0xAA,0x00,0xFF);
 
         var int x = this.pos.x + 25*_sin(angle/(180.0/_M_PI));
         var int y = this.pos.y + 25*_cos(angle/(180.0/_M_PI));
-        _filledCircleRGBA(&ren, x,y, 8,
+        _filledCircleRGBA(_REN, x,y, 8,
                                 0x00,0x00,0x00,0xFF);
     end
 end
@@ -208,14 +183,12 @@ par/or do
     await SDL_QUIT;
 with
     every SDL_REDRAW do
-        _SDL_SetRenderDrawColor(&ren, 0xFF,0xFF,0xFF, 0xFF);
-        _SDL_RenderFillRect(&ren, null);
+        _SDL_SetRenderDrawColor(_REN, 0xFF,0xFF,0xFF, 0xFF);
+        _SDL_RenderFillRect(_REN, null);
     end
 with
 
-    var Turtle turtle with
-        this.ren = ren;
-    end;
+    var Turtle turtle;
 
     traverse qu in queue do
         watching *qu do
@@ -351,7 +324,7 @@ _ceu_out_assert(queue.ROOT.tmp.ITEM.prv.ITEM.cmds.PAROR.one.ROTATE,
 #endif
 with
     every SDL_REDRAW do
-        _SDL_RenderPresent(&ren);
+        _SDL_RenderPresent(_REN);
     end
 end
 
