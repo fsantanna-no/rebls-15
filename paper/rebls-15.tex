@@ -540,9 +540,9 @@ In practice, this means that it reacts consistently if another trail of
 execution modifies the data structure being traversed.
 \end{enumerate}
 
-We believe that the \code{traverse}, more than a simple convenience, 
-dramatically reduces the complexity of programs, automatically handling a 
-complex hierarchy of behaviors associated with recursive data types.
+We believe that the \code{traverse} construct, more than a simple convenience, 
+considerably reduces the complexity of programs, handling a complex hierarchy 
+of behaviors associated with recursive data types automatically.
 
 %TODO: expansion is simplified:
 % option type, mem fail, passing arguments, outer closure
@@ -703,39 +703,51 @@ The semantics of the selection node can be understood as short-circuit evaluatio
 the \code{SEL} node evaluates its left subtree until it finishes,
 and if it did not finish successfully, evaluates its right subtree until it finishes.
 
-This skeleton, augmented with leaves that test properties, set properties, perform animations and sounds,
-and other custom combinators, can be preferable to finite state machines for authoring game AI.
+This skeleton is extensible with leaves to test properties, set properties, 
+perform animations and sounds, etc., and is an effective alternative to finite 
+state machines for authoring game AI.
+%
+However, because the evaluation of each tree extends across many frames, 
+writing behavior tree nodes and leaves in other languages is an exercise in 
+stack-ripped event-driven programming~\cite{krohn2007events}.
+%
+%and there are sufficiently many creatures that it is infeasible for each 
+%creature to have its own thread,
+%
+By lowering the barrier to writing custom nodes and leaves, \CEU lightweight 
+event control mechanisms make behavior trees more usable.
 
-Because the evaluation of each tree extends across many frames,
-and there are sufficiently many creatures that it is infeasible for each creature to have its own thread,
-writing behavior tree nodes and leaves in other languages is an exercise in stack-ripped event-driven programming~\cite{krohn2007events}.
-By lowering the barrier to writing custom nodes and leaves, \CEU makes behavior trees more usable.
-
-The leaves of a behavior tree in a blocks domain
-might include sensors that quickly either succeed or fail,
-as well as actuators that move blocks and unconditionally succeed.
-
-In this case, we have somehow pinned down the
-situation to two possibilities\footnote{If 3 is on the table,
-then we should move 2 from 3 to 1,
-and then 3 from the table to 2,
-achieving a 123 stack.
-But if 3 is not on the table,
-we should move 3 from 2 to the table,
-and then move 2 from the table to 1,
-and then 3 from the table to 2,
-also achieving a 123 stack.}.
-We use a \code{SEL} node and a sensor leaf to decide which strategy is appropriate,
-and \code{SEQ} nodes and actuator leaves to execute it.
-This illustrates how the behavior tree can exhibit goal-directed behavior.
-The goal-directedness is not usually automatic; rather, behavior trees are authored.
-The \code{traverse} feature allows behavior to be authored by 
-editing a script that is interpreted at runtime.
-
-The tree in Figure~\ref{lst.bt1.example} is based on output from Contingent-FF~\cite{hoffmann2005contingent},
-and the blocks domain is one of its benchmark problems.
-The \code{traverse} feature and integration with C allows \CEU to
-to consume the output of CPU-intensive algorithms at runtime.
+Figure~\ref{lst.bt1} describes a generic grammar for behavior trees (lines 
+1--9).
+The \code{SEQ} and \code{SEL} tags (lines 4 and 6) are recursive and behave as 
+described above.
+The \code{LEAF} tag (line 8) receives a reference to a \code{Leaf} organism, 
+which is defined externally and implements the behavior for the domain-specific 
+application.
+%
+The interpreter for tree instances is abstracted in a class definition (lines 
+11--37), which receives the tree to execute as an argument (line 12), acquires 
+the return status of the traversal (line 14) and returns it as its final result 
+(lines 36).
+%
+The traversal takes into account the semantics of the composite nodes.
+%
+For the \code{SEQ} tag (lines 16--22), we traverse the \code{first} subtree 
+(line 17) and only if it succeeds, we traverse the \code{second} subtree (line 
+21).
+%
+For the \code{SEL} tag (lines 23--29), we traverse the \code{first} subtree 
+(line 24) and only if it fails, we traverse the \code{second} subtree (line 
+28).
+%
+Finally, the \code{LEAF} tag does the real work and is domain specific.
+The \code{do Class} syntax (line 31--32) creates an anonymous and lexically 
+scoped organism of the referred class and awaits its termination.
+The organism itself can contain any valid code in \CEU and execute for an 
+arbitrary amount of time~\cite{ceu.mod15}.
+The tree traversal hangs and waits for its return status (line 33).
+This is the expected behavior given that \code{SEQ} and \code{SEL} nodes want 
+to execute their children in sequence.
 
 % rebls-15/bts-ceu/btree-1.ceu
 \begin{figure}[t]
@@ -747,20 +759,9 @@ or
 or
    tag SEL (BTree first, BTree second);
 or
-   tag LEAF (Leaf leaf);
+   tag LEAF (Leaf& leaf);
 end
 
-\end{lstlisting}
-%\rule{8.5cm}{0.37pt}
-\caption{ A simple generic grammar of behavior trees with \emph{sequence} and \emph{selector}
-          composite nodes.
-\label{lst.bt1}
-}
-\end{figure}
-
-% rebls-15/bts-ceu/btree-1.ceu
-\begin{figure}[t]
-\begin{lstlisting}[numbers=left,xleftmargin=3em]
 class BTreeInterpreter with
    pool BTree[]& btree;
 do
@@ -782,19 +783,50 @@ do
              escape ok;
          else/if t:LEAF then
             var int ret =
-                do LeafHandler(t:LEAF.leaf);
+                do Leaf(t:LEAF.leaf);
             escape ret;
          end
       end;
    escape ret;
 end
 \end{lstlisting}
-%\rule{8.5cm}{0.37pt}
-\caption{ A straightforward interpreter for the behavior tree of 
-          Figure~\ref{lst.bt1}.
-\label{lst.bt1.interpreter}
+\caption{
+A simple generic grammar of behavior trees with \emph{sequence} and 
+\emph{selector} composite nodes with a straightforward interpreter.
+\label{lst.bt1}
 }
 \end{figure}
+
+TODO: need to explain "blocks domain" before
+
+The leaves of a behavior tree in a blocks domain
+might include sensors that quickly either succeed or fail,
+as well as actuators that move blocks and unconditionally succeed.
+
+In this case, we have somehow pinned down the
+situation to two possibilities\footnote{If 3 is on the table,
+then we should move 2 from 3 to 1,
+and then 3 from the table to 2,
+achieving a 123 stack.
+But if 3 is not on the table,
+we should move 3 from 2 to the table,
+and then move 2 from the table to 1,
+and then 3 from the table to 2,
+also achieving a 123 stack.}.
+
+TODO: what is 1,2,3? (can use concrete names instead?)
+
+We use a \code{SEL} node and a sensor leaf to decide which strategy is appropriate,
+and \code{SEQ} nodes and actuator leaves to execute it.
+This illustrates how the behavior tree can exhibit goal-directed behavior.
+The goal-directedness is not usually automatic; rather, behavior trees are authored.
+The \code{traverse} feature allows behavior to be authored by 
+editing a script that is interpreted at runtime.
+
+The tree in Figure~\ref{lst.bt1.example} is based on output from Contingent-FF~\cite{hoffmann2005contingent},
+and the blocks domain is one of its benchmark problems.
+The \code{traverse} feature and integration with C allows \CEU to
+to consume the output of CPU-intensive algorithms at runtime.
 
 \begin{figure}[t]
 \begin{lstlisting}[numbers=left,xleftmargin=3em]
@@ -818,36 +850,6 @@ var int ret = do BTreeInterpreter(btree);
 \label{lst.bt1.example}
 }
 \end{figure}
-
-%% rebls-15/bts-ceu/domain-1.ceu
-%\begin{figure}[t]
-%\begin{lstlisting}[numbers=left,xleftmargin=3em]
-%class LeafHandler with
-%   var Leaf& leaf;
-%do
-%   // TODO: what to show here?
-%   escape leaf.v;
-%end
-%\end{lstlisting}
-%%\rule{8.5cm}{0.37pt}
-%\caption{ A leaf node with complex behavior.
-%\label{lst.bt1.leaf}
-%}
-%\end{figure}
-
-%\subsubsection{Parallel Behavior Tree}
-
-\begin{comment}
-Most "standard" BTs I found have these "sequence" and "selector" composite 
-nodes.
-I thought about starting with this one and maybe expanding it with a 
-"parallel/or" further.
-
-Two things to discuss:
-(1) how the implementation of the interpreter is straightforward;
-(2) that leaf nodes are not restricted to a "tick" callback and can actually 
-execute arbitrary code in \CEU.
-\end{comment}
 
 \subsection{Logo Turtle}
 
