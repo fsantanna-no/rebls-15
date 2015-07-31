@@ -716,9 +716,9 @@ Figure~\ref{lst.bt1} describes a generic grammar for behavior trees (lines
 1--9).
 The \code{SEQ} and \code{SEL} tags (lines 4 and 6) are recursive and behave as 
 described above.
-The \code{LEAF} tag (line 8) receives a reference to a \code{Leaf} organism, 
-which is defined externally and implements the behavior for the domain-specific 
-application.
+The \code{LEAF} tag (line 8) receives a reference to a \code{Leaf} data type, 
+which is defined externally, carrying opaque values that are specific to the 
+application domain.
 %
 The interpreter for tree instances is abstracted in a class definition (lines 
 11--37), which receives the tree to execute as an argument (line 12), acquires 
@@ -778,7 +778,7 @@ do
              escape ok;
          else/if t:LEAF then
             var int ret =
-                do Leaf(t:LEAF.leaf);
+                do LeafHandler(t:LEAF.leaf);
             escape ret;
          end
       end;
