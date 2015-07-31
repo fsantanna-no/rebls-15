@@ -2,3 +2,6 @@
 *.bbl
 *.blg
 *.log
+old/
+*-eps-converted-to.pdf
+*.autosave
