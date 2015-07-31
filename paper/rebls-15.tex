@@ -1006,7 +1006,7 @@ All examples so far create a fixed tree that does not vary during traversal.
 Figure~\ref{lst.turtle.queue} extends the Turtle application with a queue of 
 pending commands to execute after the running commands terminate.
 
-We define a new \code{Queue} data type in (\emph{CODE-1}):
+We define a new \code{Queue} data type in (\emph{CODE-3}):
 \code{ROOT} has a \code{running} subtree with the running commands, a 
 \code{waiting} queue of pending commands to execute, and a \code{tmp} node that 
 allows in-place manipulation of the tree.
@@ -1016,7 +1016,7 @@ represents a pointer TODO.
 command to execute, and a \code{prv} queue item pointing to an older item that 
 should execute first (i.e., the queue is in reverse order).
 %
-We define a new \code{Queue} data type in \emph{CODE-1}:
+We define a new \code{Queue} data type in \emph{CODE-3}:
 The tag \code{ROOT} has a \code{runnning} subtree with the running commands, a 
 \code{waiting} queue of pending commands to execute afterwards, and a 
 \code{tmp} node to allows in-place manipulation of the tree (to be discussed 
@@ -1031,7 +1031,7 @@ should have a single \code{ROOT} node with linked lists of \code{ITEM} nodes in
 the \code{running} and \code{waiting} fields.
 Except on command creation, the \code{tmp} field is always \code{NIL}.
 
-The \code{queue} traversal in \emph{CODE-2} handles the tags \code{ROOT} (lines 
+The \code{queue} traversal in \emph{CODE-4} handles the tags \code{ROOT} (lines 
 3--16) and \code{ITEM} (lines 17--20).
 %
 The \code{ROOT} traversal is a continuous \code{loop} that executes the 
@@ -1073,7 +1073,7 @@ Note that the compiler enforces the use of the \code{watching} construct (lines
 Hence, if its enclosing \code{ITEM} (line 17) is mutated, the \code{watching} 
 will awake and abort the interpreter inside its lexical scope.
 
-The enqueuing of new commands is depicted in \emph{CODE-3}.
+The enqueuing of new commands is depicted in \emph{CODE-5}.
 The external input event \code{ENQUEUE} (line 1) accepts \emph{move} and 
 \emph{rotate} commands with an associated velocity and time (i.e., 
 \code{char*,int,int} arguments).
@@ -1092,7 +1092,7 @@ root of the \code{waiting} field.
 \item Lines 13--14 move the already \code{waiting} commands to tail of the 
 \code{tmp} node (mark~\MM{(b)}).
 Note that the neutral \code{ITEM} is skipped to avoid the \code{waiting} root 
-to become \code{NIL} and awake the \code{ROOT} node (line 8 of \emph{CODE-2}) 
+to become \code{NIL} and awake the \code{ROOT} node (line 8 of \emph{CODE-4}) 
 before we finish the enqueuing operation.
 The old location for the moved commands is automatically set to \code{NIL} 
 (mark~\MM{(c)}).
@@ -1109,7 +1109,7 @@ The \code{tmp} field is automatically set to \code{NIL} (mark~\MM{(f)}).
 
 \begin{figure*}[t]
 \begin{minipage}[t]{0.22\linewidth}
-\begin{lstlisting}[title=CODE-1: \code{Queue} type]
+\begin{lstlisting}[title=CODE-3: \code{Queue} type]
 data Queue with
   tag NIL ();
 or
@@ -1135,7 +1135,7 @@ end
 \end{minipage}
 %
 \begin{minipage}[t]{0.36\linewidth}
-\begin{lstlisting}[numbers=left,xleftmargin=3.5em,title=CODE-2: Queue traversal]
+\begin{lstlisting}[numbers=left,xleftmargin=3.5em,title=CODE-4: Queue traversal]
 traverse qu in queue do
   watching qu do
     if qu:ROOT then
@@ -1161,7 +1161,7 @@ end
 \end{minipage}
 %
 \begin{minipage}[t]{0.39\linewidth}
-\begin{lstlisting}[numbers=left,xleftmargin=3.5em,title=CODE-3: Enqueuing commands]
+\begin{lstlisting}[numbers=left,xleftmargin=3.5em,title=CODE-5: Enqueuing commands]
 input (char*,int,int) ENQUEUE;
 every (cmd,vel,time) in ENQUEUE do
   if _strcmp(cmd,"move")==0 then
@@ -1212,28 +1212,31 @@ Swapping \code{waiting} and \code{running} commands.
 }
 \end{figure*}
 
-\begin{figure*}[t]
-\begin{minipage}[t]{0.24\linewidth}
+\begin{figure}[t]
+\begin{minipage}[t]{0.99\linewidth}
 \centering
-\includegraphics[scale=0.17]{queue-20.eps}
+\includegraphics[scale=0.23]{queue-20.eps}
 \end{minipage}
-\begin{minipage}[t]{0.24\linewidth}
+
+\begin{minipage}[t]{0.99\linewidth}
 \centering
-\includegraphics[scale=0.17]{queue-21.eps}
+\includegraphics[scale=0.23]{queue-21.eps}
 \end{minipage}
-\begin{minipage}[t]{0.24\linewidth}
+
+\begin{minipage}[t]{0.99\linewidth}
 \centering
-\includegraphics[scale=0.17]{queue-22.eps}
+\includegraphics[scale=0.23]{queue-22.eps}
 \end{minipage}
-\begin{minipage}[t]{0.24\linewidth}
+
+\begin{minipage}[t]{0.99\linewidth}
 \centering
-\includegraphics[scale=0.17]{queue-23.eps}
+\includegraphics[scale=0.23]{queue-23.eps}
 \end{minipage}
 \caption{
 Enqueuing new commands.
 \label{fig.queue-2}
 }
-\end{figure*}
+\end{figure}
 
 \section{Related Work}
 
