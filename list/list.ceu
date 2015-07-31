@@ -1,3 +1,6 @@
+#define HEADER_TITLE "List Data Type"
+#include "../header.ceu"
+
 data List with
     tag NIL;
 or
@@ -58,6 +61,7 @@ end
 // lst.list.sum.react
 _printf("\n>>> lst.list.sum.react\n");
 do
+#ifndef ALL
     class Input with
     do
         async do
@@ -65,6 +69,7 @@ do
         end
     end
     var Input _;
+#endif
 
     do
         pool List[] l;
@@ -92,4 +97,8 @@ do
     end
 end
 
+#ifdef ALL
+await FOREVER;
+#else
 escape 0;
+#endif

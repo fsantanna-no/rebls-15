@@ -871,8 +871,8 @@ tag (line 6).
 %
 Our variant extends the \code{MOVE} and \code{ROTATE} commands to take as 
 arguments the speed at which they should affect the turtle (lines 8 and 12).
-For example, a \code{Command.MOVE(50)} node directs the turtle to move at the 
-speed of 50 pixels per second, indefinitely.
+For example, a \code{Command.MOVE(300)} node directs the turtle to move at the 
+speed of 300 pixels per second, indefinitely.
 %
 Therefore, the only way to make the turtle stop moving or rotating is through 
 two \CEU-like extensions added to our Logo variant:
@@ -987,7 +987,7 @@ end
 pool Command[] cmds =
    new PAROR(
          AWAIT(1000),
-         PAROR(MOVE(50), ROTATE(180)));
+         PAROR(MOVE(300), ROTATE(180)));
 
 var Turtle turtle;
 do CommandInterpreter(turtle, cmds);
