@@ -1,13 +1,16 @@
 #define HEADER_TITLE "Behavior Tree"
 #include "../header.ceu"
 
+native @nohold _scanf();
+native do
+    ##include <stdio.h>
+end
+
 #ifdef ALL
 do Intro with
     this.title = "Example of Figures 5-6\n > Behavior Tree";
 end;
 #endif
-
-native @nohold _scanf();
 
 data Leaf with
     // is b1 on b2?
@@ -50,8 +53,9 @@ class LeafHandler with
     var Leaf& leaf;
 do
     var int answer = 0;
+    ___fpurge(_stdin);
     if leaf.SENSEON then
-        _printf("Is block %c on block %c? ", leaf.SENSEON.b1,
+        _printf("Is block %c on block %c? [0/1] ", leaf.SENSEON.b1,
                                              leaf.SENSEON.b2);
         _scanf("%d", &answer);
         if answer then _printf("=> saw yes\n"); else _printf("=> saw no\n"); end
@@ -60,7 +64,7 @@ do
         _scanf("%d", &answer);
         if answer then _printf("=> saw yes\n"); else _printf("=> saw no\n"); end
     else/if leaf.SENSEONTABLE then
-        _printf("Is block %c on the table? ", leaf.SENSEONTABLE.b1);
+        _printf("Is block %c on the table? [0/1] ", leaf.SENSEONTABLE.b1);
         _scanf("%d", &answer);
         if answer then _printf("=> saw yes\n"); else _printf("=> saw no\n"); end
     else/if leaf.MOVEBLOCKTOBLOCK then
@@ -110,8 +114,15 @@ do BTreeTraverse with
     this.btree = btree;
 end;
 
+_printf("\n--------------------------------\n");
+
 do BTreeTraverse with
     this.btree = btree;
 end;
+
+_printf("\n");
+_printf("--------------------------------\n");
+_printf(" > OK\n");
+_printf("--------------------------------\n");
 
 await FOREVER;

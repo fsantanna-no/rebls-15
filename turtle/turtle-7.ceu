@@ -7,6 +7,11 @@
 #define HEADER_TITLE "Enqueuing Commands"
 #include "../header.ceu"
 
+native @nohold _scanf();
+native do
+    ##include <stdio.h>
+end
+
 #ifdef ALL
 do Intro with
     this.title = "Example of Figure 9\n > Enqueuing Commands";
@@ -236,6 +241,7 @@ with
         native do
             void get_cmd (char* cmd, int* vel, int* time) {
                 while (1) {
+                    __fpurge(stdin);
                     printf("> ");
                     int n = scanf("%s", cmd);
                     if (n == 1) {
@@ -251,10 +257,6 @@ with
                         }
                     }
                     printf("invalid command\n");
-                    {
-                        char c;
-                        while((c = getchar()) != '\n' && c != EOF);
-                    }
                 }
             }
         end
@@ -367,4 +369,8 @@ with
     end
 end
 
-escape 1;
+#ifdef ALL
+await FOREVER;
+#else
+escape 0;
+#endif

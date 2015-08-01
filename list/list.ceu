@@ -140,7 +140,10 @@ do
 end
 
 await 2s;
-_printf("\n\n > OK\n");
+_printf("\n");
+_printf("--------------------------------\n");
+_printf(" > OK\n");
+_printf("--------------------------------\n");
 
 #ifdef ALL
 await FOREVER;
