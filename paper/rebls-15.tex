@@ -796,18 +796,26 @@ The blocks world is a classical planning domain~\cite{slaney2001blocks}.
 The leaves of a behavior tree in an extended blocks world domain
 might include sensor leaves that either succeed or fail,
 as well as actuator leaves that move blocks and unconditionally succeed.
+
 The tree in Figure~\ref{lst.bt1.example} is based on output from Contingent-FF~\cite{hoffmann2005contingent},
 and the blocks domain extended with sensor actions is one of Contingent-FF's benchmark problems.
-
-In this case, we have somehow pinned down the
-situation to two possibilities.
+Here, we want to achieve an ABC stack.
+We assume we pinned down the situation to two possibilities.
 %
-We use a \code{SEL} node and a sensor leaf to decide which strategy is appropriate,
-and \code{SEQ} nodes and actuator leaves to execute it.
+We use a \code{SEL} node (line 1) to go through them,
+and a sensor leaf (line 2) to decide which strategy is appropriate:
+If it senses that C directly on top of the table,
+then we move B, then C, then A (line 3).
+If the sensor does not succeed, we move to the second sequence of
+the selection (lines 4-6): we move C from B to the table
+and B from the table to A. Finally, completing the outer sequence
+that applies to both cases, we move C from the table to B (line 7),
+thus achieving an ABC stack.
+
 This illustrates how the behavior tree can exhibit goal-directed behavior.
 The goal-directedness is not automatic; rather, behavior trees are authored
 by designers to exhibit goal-directedness.
-The \code{traverse} feature allows runtime-authored behavior, 
+The \code{traverse} feature allows behavior authored at runtime,
 which is one of the crucial features of behavior trees.
 Alternatively, \code{traverse} allows \CEU to
 to consume at runtime the output of CPU-intensive algorithms such as planners.
@@ -822,18 +830,10 @@ pool BTree[] btree = new SEQ(SEL(SEQ(
       LEAF(MOVE_FROM_TABLE(B, A)))),
   LEAF(MOVE_FROM_TABLE(C, B)));
 \end{lstlisting}
-\centerline{\includegraphics[scale=0.5]{blocksworld.eps}}
+
+\centerline{\includegraphics[scale=0.35]{blocksworld2.eps}}
 %\rule{8.5cm}{0.37pt}
 \caption{ A blocks world behavior tree.
-If C is on the table,
-then we move B from C to A,
-and C from the table to B,
-achieving an ABC stack.
-But if C is not on the table,
-we move C from B to the table,
-B from the table to A,
-and C from the table to B,
-also achieving an ABC stack.
 \label{lst.bt1.example}
 }
 \end{figure}
@@ -1200,7 +1200,22 @@ Enqueuing new commands.
 
 \section{Related Work}
 
-...
+Synchronous languages - data types in synchronous languages
+
+Data structures under constraints: functional/immutable data structures, persistent data structures.
+
+Traversing data structures: syntactic support and expressivity
+
+- Python generators
+
+- Lua iterators (coroutines + generic for)
+
+- generators in Icon
+(1981 paper "Generators in Icon": keywords include "goal-directed programming, generators,
+nondeterministic programming, backtracking" -- talks about 'control backtracking', which
+looks conceptually like behavior trees)
+http://drhanson.s3.amazonaws.com/storage/documents/generators-in-icon.pdf
+
 
 \begin{comment}
 What to compare against???
@@ -1252,9 +1267,9 @@ allocation and deterministic deallocation. Still, we do not feel that the
 restrictions are prohibitively limiting. For instance, persistent data
 structures in functional languages \cite{TODO} operate under tighter design constraints.
 
-Limitations:
-
-- high-order programming
+Possibilities for future work are the introduction of type arguments for \code{data},
+and investigating possibilities for relaxing \CEU pointer and
+reference semantics while maintaining their safety properties on recursive data.
 
 \bibliographystyle{abbrv}
 \bibliography{rebls-15}
