@@ -59,7 +59,7 @@ or
     end
 end
 
-pool Queue[20] queue = new
+pool Queue[] queue = new
     Queue.ROOT(
         Queue.ITEM(
             Command.PAROR(
@@ -222,6 +222,7 @@ with
 
     await FOREVER;
 with
+#if 1
     _printf("; TURTLE STREAM COMMANDS:\n");
     _printf("> move 100 1000\n");
     _printf("   ; moves at 100 px/s during 1000 ms\n");
@@ -274,27 +275,31 @@ with
         else/if _strcmp(cmd,"move") == 0 then
             move_or_rotate = true;
             queue.ROOT.tmp = new Queue.ITEM(
-                                  Command.PAROR(
-                                   Command.MOVE(vel),
-                                   Command.AWAIT(time)),
-                                  Queue.NIL());
+                                   Command.NOTHING(),
+                                   Queue.ITEM(
+                                     Command.PAROR(
+                                       Command.MOVE(vel),
+                                       Command.AWAIT(time)),
+                                     Queue.NIL()));
 
         // ROTATE
         else/if _strcmp(cmd,"rotate") == 0 then
             move_or_rotate = true;
             queue.ROOT.tmp = new Queue.ITEM(
-                                  Command.PAROR(
-                                   Command.ROTATE(vel),
-                                   Command.AWAIT(time)),
-                                  Queue.NIL());
+                                   Command.NOTHING(),
+                                   Queue.ITEM(
+                                     Command.PAROR(
+                                       Command.ROTATE(vel),
+                                       Command.AWAIT(time)),
+                                     Queue.NIL()));
         end
 
         if move_or_rotate then
-            queue.ROOT.tmp.ITEM.prv = queue.ROOT.waiting.ITEM.prv;
+            queue.ROOT.tmp.ITEM.prv.ITEM.prv = queue.ROOT.waiting.ITEM.prv;
             queue.ROOT.waiting = queue.ROOT.tmp;
         end
     end
-#if 0
+#else
     every 2s do
         do
             queue.ROOT.tmp = new Queue.ITEM(
@@ -304,8 +309,6 @@ with
                                        Command.ROTATE(180),
                                        Command.AWAIT(1000)),
                                       Queue.NIL()));
-            _ceu_out_assert(queue.ROOT.tmp.ITEM.prv.ITEM.cmds.PAROR.one.ROTATE,
-                            "out of memory");
             queue.ROOT.tmp.ITEM.prv.ITEM.prv = queue.ROOT.waiting.ITEM.prv;
             queue.ROOT.waiting = queue.ROOT.tmp;
         end
@@ -317,15 +320,45 @@ with
                                        Command.MOVE(180),
                                        Command.AWAIT(1000)),
                                       Queue.NIL()));
-            _ceu_out_assert(queue.ROOT.tmp.ITEM.prv.ITEM.cmds.PAROR.one.MOVE,
-                            "out of memory");
             queue.ROOT.tmp.ITEM.prv.ITEM.prv = queue.ROOT.waiting.ITEM.prv;
-#if 0
-_ceu_out_assert(queue.ROOT.tmp.ITEM.prv.ITEM.cmds.PAROR.one.ROTATE,
-        "out of memory");
-#endif
             queue.ROOT.waiting = queue.ROOT.tmp;
         end
+        do
+            queue.ROOT.tmp = new Queue.ITEM(
+                                    Command.NOTHING(),
+                                    Queue.ITEM(
+                                      Command.PAROR(
+                                       Command.ROTATE(180),
+                                       Command.AWAIT(1000)),
+                                      Queue.NIL()));
+            queue.ROOT.tmp.ITEM.prv.ITEM.prv = queue.ROOT.waiting.ITEM.prv;
+            queue.ROOT.waiting = queue.ROOT.tmp;
+        end
+        do
+            queue.ROOT.tmp = new Queue.ITEM(
+                                    Command.NOTHING(),
+                                    Queue.ITEM(
+                                      Command.PAROR(
+                                       Command.MOVE(180),
+                                       Command.AWAIT(1000)),
+                                      Queue.NIL()));
+            queue.ROOT.tmp.ITEM.prv.ITEM.prv = queue.ROOT.waiting.ITEM.prv;
+            queue.ROOT.waiting = queue.ROOT.tmp;
+        end
+traverse qu in queue.ROOT.waiting do
+    if qu:ITEM then
+        if qu:ITEM.cmds.NOTHING then
+            _printf("ITEM: rot=%d, mov=%d\n", 0, 0);
+        else
+            _printf("ITEM: rot=%d, mov=%d\n",
+                qu:ITEM.cmds.PAROR.one.ROTATE, qu:ITEM.cmds.PAROR.one.MOVE);
+        end
+        traverse qu:ITEM.prv;
+    else
+        _printf("NIL\n");
+    end
+end
+        _printf("OK\n");
     end
 #endif
 with
