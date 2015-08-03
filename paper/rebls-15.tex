@@ -867,7 +867,7 @@ tracing curves.
 
 % rebls-15/turtle/turtle-2.ceu
 % rebls-15/turtle/turtle-7.ceu
-\begin{figure}[t]
+\begin{figure}[h!]
 \begin{lstlisting}[numbers=left,xleftmargin=3em]
 data Command with
    tag NOTHING ();
@@ -921,16 +921,7 @@ do
       end
    end
 end
-\end{lstlisting}
-\caption{ DSL grammar and interpreter for a Logo turtle.
-\label{lst.turtle}
-}
-\end{figure}
 
-\begin{verbatim}
-\end{verbatim}
-\begin{figure}[h!]
-\begin{lstlisting}[numbers=left,xleftmargin=3em]
 pool Command[] cmds =
    new PAROR(
          AWAIT(1000),
@@ -939,9 +930,8 @@ pool Command[] cmds =
 var Turtle turtle;
 do CommandInterpreter(turtle, cmds);
 \end{lstlisting}
-%\rule{8.5cm}{0.37pt}
-\caption{ A turtle program.
-\label{lst.turtle.example}
+\caption{Grammar, interpreter, and sample program for a Logo turtle DSL.
+\label{lst.turtle}
 }
 \end{figure}
 
@@ -1049,8 +1039,8 @@ The \code{PAROR} tag (line 14), modeled after the \CEU construct \code{par/or},
 launches two commands in parallel, and aborts both of them as soon as one of
 them finishes.
 %
-As an example, the program in Figure~\ref{lst.turtle.example} makes the turtle 
-to move along a semicircle.
+As an example, the program (lines 54--60) makes the turtle to move along a 
+semicircle.
 
 The interpreter for the commands is also abstracted in a class definition 
 (lines 17--52 of Figure~\ref{lst.turtle}).
