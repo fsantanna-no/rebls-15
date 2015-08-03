@@ -998,19 +998,19 @@ every (cmd,vel,time) in ENQUEUE do
   if _strcmp(cmd,"move")==0 then
     queue.ROOT.tmp =
       new ITEM(
-            PAROR(
-              MOVE(vel),
-              AWAIT(time)),
-            NIL());
+            NOTHING(),
+            ITEM(
+              PAROR(
+                MOVE(vel),
+                AWAIT(time)),
+              NIL()));
   else/if _strcmp(cmd,"rotate")==0 then
     <...> // analogous to the MOVE above
   end
-  queue.ROOT.tmp.ITEM.prv =
+  queue.ROOT.tmp.ITEM.prv.ITEM.prv =
     queue.ROOT.waiting.ITEM.prv;
   queue.ROOT.waiting = queue.ROOT.tmp;
 end
-
-
 
 
 .
@@ -1088,96 +1088,19 @@ Figure~\ref{lst.turtle.queue} extends the Turtle application with a queue of
 pending commands to execute after the running commands terminate.
 
 We define a new \code{Queue} data type in \emph{CODE-3}:
-The \code{ROOT} tag (lines 4--6) has a \code{runnning} subtree with the running 
-commands, a \code{waiting} queue of pending commands to execute afterwards, and 
-a \code{tmp} node to allow in-place manipulation of the tree (to be discussed 
+The \code{ROOT} tag (lines 4--6) has a \code{runnning} subtree of commands, a 
+\code{waiting} queue of pending commands to execute afterwards, and a 
+\code{tmp} node to allow in-place manipulation of the tree (to be discussed 
 further).
 %
 The \code{ITEM} tag (lines 8--9) represents a queue item and contains a 
-\code{cmds} subtree with the commands to execute, and a \code{prv} queue item 
-pointing to an older item that should execute first (i.e., the queue is in 
-reverse order).
+\code{cmds} subtree with the actual commands to execute, and a \code{prv} queue 
+item pointing to an older item (i.e., the queue is in reverse order).
 %
 As Figure~\ref{fig.queue-1} illustrates in box \code{0}, a queue instance has a 
 single \code{ROOT} node with linked lists of \code{ITEM} nodes in the 
 \code{running} and \code{waiting} fields.
 Except when creating a new command, the \code{tmp} field is always \code{NIL}.
-
-The \code{queue} traversal in \emph{CODE-4} handles the tags \code{ROOT} (lines 
-3--14) and \code{ITEM} (lines 15--18).
-%
-The \code{ROOT} traversal is a continuous \code{loop} that executes the 
-\code{running} subtree and swaps it on termination with the \code{waiting} 
-queue.
-The \code{par/and} (lines 5--9) ensures that that the swap only occurs after 
-the current \code{running} commands terminate (line 6) \emph{and} something (in 
-parallel) mutates the \code{waiting} subtree (line 8), meaning that the queue 
-is no longer empty.
-The swapping process (lines 10--13) is illustrated in Figure~\ref{fig.queue-1} 
-in the respective boxes (0--2):
-%
-\begin{enumerate}[start=0]
-%
-\item The initial state assumes pre-existing \code{running} and \code{waiting} 
-items.
-\item Lines 10--11 assign the \code{waiting} subtree to the \code{running} 
-field (mark~\MM{(a)}), releasing the old subtree (mark~\MM{(b)})).
-The \code{waiting} field is automatically set to \code{NIL} (mark~\MM{(c)}).
-%
-\item Lines 12--13 assign a new neutral \code{ITEM} (with a dummy 
-\code{NOTHING} command in the \code{cmds} field) to the \code{waiting} queue 
-(mark~\MM{(d)}).
-%
-\end{enumerate}
-%
-After the swapping process, the \code{loop} restarts and traverses the new 
-\code{running} commands.
-%
-The \code{ITEM} traversal is straightforward:
-first we traverse the previous item (line 16), and then we reuse the 
-\code{CommandInterpreter} class of Figure~\ref{lst.turtle} to traverse the 
-commands (line 17--18).
-
-Even though this example mutates the \code{running} field only \emph{after} its 
-traversal terminates, it is safe to do an arbitrary mutation at any time.
-Note that the compiler enforces the use of the \code{watching} construct (line 
-2) to enclose the running turtle interpreter (lines 17--18).
-Hence, if its enclosing \code{ITEM} (line 15) is mutated, the \code{watching} 
-will awake and abort the interpreter that runs inside its lexical scope.
-
-The enqueuing of new commands is depicted in \emph{CODE-5}.
-The external input event \code{ENQUEUE} (line 1) accepts \emph{move} and 
-\emph{rotate} commands with an associated velocity and time (i.e., 
-``\code{char*,int,int}'' arguments).
-The \code{every} loop reacts to each occurrence of \code{ENQUEUE}, creating and 
-enqueuing the requested command, as illustrated in Figure~\ref{fig.queue-2} 
-(1--3):
-%
-\begin{enumerate}[start=0]
-%
-\item The initial state assumes the pre-existing neutral \code{ITEM} in the 
-root of the \code{waiting} field.
-%
-\item Line 4--9 create the new \code{ITEM}, with the set of commands to 
-\code{MOVE} the turtle, and assigns it to the \code{tmp} field (mark~\MM{a}).
-%
-\item Lines 13--14 move the already \code{waiting} commands to tail of the 
-\code{tmp} node (mark~\MM{(b)}).
-Note that the neutral \code{ITEM} is skipped to avoid the \code{waiting} root 
-to become \code{NIL} and awake the \code{ROOT} node (\emph{CODE-4}: 8) before 
-we finish the enqueuing operation.
-The old location for the moved commands is automatically set to \code{NIL} 
-(mark~\MM{(c)}).
-%
-\item Line 15 moves the \code{tmp} subtree back to the \code{waiting} field 
-(mark~\MM{(d)}), releasing the neutral \code{ITEM} (mark~\MM{(e)}), and 
-notifying the \code{ROOT} node that the queue is no longer empty.
-The \code{tmp} field is automatically set to \code{NIL} (mark~\MM{(f)}).
-%
-\end{enumerate}
-%
-
-- TODO: modularization of data type and travesal
 
 \begin{figure}[t]
 \centering
@@ -1187,6 +1110,81 @@ Swapping \code{waiting} and \code{running} commands.
 \label{fig.queue-1}
 }
 \end{figure}
+
+We define the \code{queue} traversal in \emph{CODE-4}.
+%
+The \code{ROOT} traversal (lines 3--14) is a continuous \code{loop} that 
+executes the \code{running} subtree and swaps it with the \code{waiting} queue 
+on termination.
+The \code{par/and} (lines 5--9) ensures that that the swap only occurs after 
+the current \code{running} commands terminate (line 6) \emph{and} something (in 
+parallel) mutates the \code{waiting} subtree (line 8), meaning that the queue 
+is no longer empty.
+The swapping process (lines 10--13) is illustrated in Figure~\ref{fig.queue-1}: 
+%
+\begin{enumerate}[start=0]
+%
+\item The initial state (box \code{0}) assumes pre-existing \code{running} and 
+\code{waiting} items.
+%
+\item Lines 10--11 assign the \code{waiting} subtree (mark~\MM(B)) to the 
+\code{running} field, releasing the old subtree (mark~\MM{(A)})).
+The \code{waiting} field is automatically set to \code{NIL}.
+%
+\item Lines 12--13 assign a new neutral \code{ITEM} (box \code{1}:~\MM(C)) to 
+the \code{waiting} field, finishing the swapping operation.
+%
+\end{enumerate}
+%
+After the swapping process, the \code{loop} restarts and traverses the new 
+\code{running} commands (lines 4--14).
+%
+The \code{ITEM} traversal (lines 15--18) is straightforward:
+first we traverse the previous item (line 16), and then we reuse the 
+\code{CommandInterpreter} class of Figure~\ref{lst.turtle} to traverse the 
+commands (line 17--18).
+
+Even though this example mutates the \code{running} field only \emph{after} its 
+traversal terminates (lines 10--11), it is safe to do an arbitrary mutation at 
+any time.
+Note that the compiler enforces the use of the \code{watching} construct (line 
+2) which encloses the running turtle interpreter (lines 17--18).
+Hence, if its enclosing \code{ITEM} (line 15) is mutated, the \code{watching} 
+will awake and abort the interpreter which runs inside its lexical scope.
+
+The enqueuing of new commands is depicted in \emph{CODE-5}.
+The external input event \code{ENQUEUE} (line 1) accepts \emph{move} and 
+\emph{rotate} commands with an associated velocity and time (i.e., 
+``\code{char*,int,int}'' arguments).
+The \code{every} loop (lines 2--18) reacts to each occurrence of 
+\code{ENQUEUE}, creating and enqueuing the requested command, as illustrated in 
+Figure~\ref{fig.queue-2}: 
+%
+\begin{enumerate}[start=0]
+%
+\item The initial state (box~\code{0}) assumes a pre-existing neutral 
+\code{ITEM} in the root of the \code{waiting} field (mark~\MM{(D)}).
+%
+\item Lines 4--11 assigns a new subtree to the \code{tmp} field (box~\code{1}) 
+with a new neutral \code{ITEM} (mark~\MM{(E)}, lines 5--6) linked to the set of 
+commands to \code{MOVE} the turtle (mark~\MM{(F)}, lines 7--11).
+%
+\item Lines 15--16 move the already \code{waiting} commands (mark~\MM{(G)}) to 
+tail of the \code{tmp} node (mark~\MM{(H)}).
+The old location is automatically set to \code{NIL}.
+Note that we skip the neutral \code{ITEM} nodes of both \code{waiting} and 
+\code{tmp} fields.
+This prevents the \code{waiting} root to become \code{NIL} and awake the 
+\code{ROOT} node (\emph{CODE-4}: 8) before we finish the enqueuing operation.
+%
+\item Line 17 moves the \code{tmp} subtree (mark~\code{E}) back to the 
+\code{waiting} field, releasing the abandoned neutral \code{ITEM}, and 
+notifying the \code{ROOT} node that the queue is no longer empty.
+The \code{tmp} field is automatically set to \code{NIL}.
+Note that the new \code{waiting} subtree preserves a neutral \code{ITEM} for 
+subsequent enqueue operations.
+%
+\end{enumerate}
 
 \begin{figure}[t]
 \centering
