@@ -547,26 +547,24 @@ Now, for each recursive iteration, we print the current \code{head} (line 9)
 and \code{await} 1 second (line 10) before traversing the \code{tail} (line 
 11).
 %
-Note that the last iteration of \code{traverse} is waiting for one second 
-before printing ``\texttt{30}'', with all previous iterations blocked and
+Note that the last iteration of \code{traverse} will wait for one second before 
+printing ``\texttt{30}'', with all previous iterations blocked and
 retaining their full state of execution.
-Furthermore, this code can be a subprogram of a larger program with other 
-trails in parallel, all of which remain reactive during the incremental 
-traversal.
+Furthermore, this code can be part of a larger program with other trails in 
+parallel, all of which remain reactive during the incremental traversal.
 
 \CEU enforces at compile time that all accesses to a pointer that cross 
-\code{await} statements are protected with an enclosing \code{watching} 
-block~\cite{ceu.mod15}.
-The \code{watching} aborts its nested block if the referred object is released 
-from memory.
+\code{await} statements are protected with an enclosing \code{watching} block, 
+which aborts its nested block if the referred object is released from 
+memory~\cite{ceu.mod15}.
 %
 This ensures that if concurrent side effects affect the pointed object, no code 
 uses the stale pointer, because the whole block is aborted.
 %
-With the protection of the \code{watching} block (lines 8--13), if the referred 
-element \code{e} (line 8) is released from memory due to a mutation in the list 
-during the awaiting period (line 10), we simply ignore the whole subtree and 
-return 0 (line 14).
+With the protection of the \code{watching} block (lines 8--13), if the element 
+\code{e} (line 8) is released from memory due to a mutation in the list during 
+the awaiting period (line 10), we simply ignore the whole subtree and return 0 
+(line 14).
 
 \emph{CODE-2} is the equivalent expansion of \emph{CODE-1} without the 
 \code{traverse} construct.
@@ -583,10 +581,10 @@ traverse (\emph{CODE-1}: 1 and \emph{CODE-2}: 1,28).
 Therefore, to ``call'' the first \code{traverse} iteration, we dynamically 
 \code{spawn} a \code{Frame} instance into the \code{frames} pool 
 (\emph{CODE-2}: 29--30).
-Then, we immediately \code{await} the termination of this \code{frame}, which 
-is in the lowest level of the ``call stack'', i.e., only after the 
-\code{traverse} rolls back and clears the ``call stack'' that we acquire the 
-\code{sum} and print it (\emph{CODE-2}: 31--34).
+Then, we immediately \code{await} the termination of this \code{frame} 
+(\emph{CODE-2}: 31).
+Only after the \code{traverse} rolls back and clears the whole call stack
+that we acquire the \code{sum} and print it (\emph{CODE-2}: 31--34).
 
 A \code{Frame} receives three arguments in the constructor (\emph{CODE-2}: 
 4--6):
@@ -594,32 +592,28 @@ a reference to a \code{pool} (to recursively \code{spawn} new frames);
 a reference to its parent frame (to handle abortion);
 and a pointer to the subtree of the data type (to be able to manipulate it).
 %
-The \code{Frame} constructor for the first ``call'' (\emph{CODE-2}: 29--30) 
+The \code{Frame} constructor for the first call (\emph{CODE-2}: 29--30) 
 receives the static pool of frames, the running organism as the parent (i.e., 
-\code{this}), and the tree of the data type passed to the original 
-\code{traverse} (\emph{CODE-1}: 4).
+\code{this}), and the original tree to traverse (\emph{CODE-1}: 4).
 %
-The \code{Frame} constructor for recursive ``calls'' (\emph{CODE-2}: 15--18) 
-receives the same pool of frames, the current ``stack frame'' as parent, and 
-the subtree of the data type passed to the original recursive \code{traverse} 
-invocation (\emph{CODE-1}: 11).
+The \code{Frame} constructor for recursive calls (\emph{CODE-2}: 15--18) 
+receives the same pool of frames, the current stack frame as parent, and the 
+original subtree in the recursive invocation (\emph{CODE-1}: 11).
 
 The \code{Frame} body (\emph{CODE-1}: 8--25) always aborts with the
 \code{parent} frame termination.
-Given that a \code{traverse} body can execute (and terminate) trails running 
-concurrently with the recursive invocation, the enclosing \code{watching} 
-guarantees that the hierarchy in the ``call stack'' will be preserved (i.e., 
-that there are no orphan frames executing).
+Given that a \code{traverse} body can possibly execute (and terminate) trails 
+running concurrently with the recursive invocation, the enclosing 
+\code{watching} guarantees that the hierarchy in the call stack is preserved 
+(i.e., that there are no orphan frames executing).
 %
 The remaining code is almost the same in the original \code{traverse} body and 
-in the \code{Frame} body (\emph{CODE-1}: 5--15 and \emph{CODE-2}: 9--23).
-The only exception is the recursive invocation of the \code{traverse} 
-(\emph{CODE-1}: 11), which expands to a \code{spawn} of a \code{Frame} 
-(\emph{CODE-2}: 15--18) with similar behavior to the first invocation 
-(\emph{CODE-2}: 29--30).
+in the \code{Frame} body (\emph{CODE-1}: 5--15 and \emph{CODE-2}: 9--23), with 
+the exception of the recursive invocation explained above (\emph{CODE-2}: 
+15--18).
 
 As the expansion illustrates, three aspects make \code{traverse} fundamentally 
-different from an recursive function calls:
+different from recursive function calls:
 %
 \begin{enumerate}
 \item Each \code{traverse} invocation spawns a new organism which can execute 
@@ -627,7 +621,7 @@ concurrently with other parts of the application.
 Also, each organism itself can invoke multiple concurrent trails, adding more 
 complexity in comparison to standard functions~\cite{ceu.mod15}.
 %
-\item Traversal is declared in terms of a specific lexically-scoped memory pool 
+\item A \code{traverse} is attached to a specific lexically-scoped memory pool 
 for a data structure.
 Therefore, we can infer at compile time the maximum traversal depth if the data 
 is bounded (e.g., \code{List[3] lst}).
@@ -635,8 +629,8 @@ Enforcing execution limits is an important requirement for constrained and
 real-time embedded systems, which is the original application domain of 
 \CEU~\cite{ceu.sensys13}.
 In addition, given that the pool of frames is expanded in the same lexical 
-scope, when the data goes out of scope, all stack frames are automatically 
-aborted~\cite{ceu.mod15}.
+scope, when the associated data goes out of scope, all stack frames are 
+automatically aborted~\cite{ceu.mod15}.
 %
 \item The execution body of a \code{traverse} block is implicitly wrapped by a 
 concurrency construct that watches for mutations of the current node.
