@@ -155,78 +155,51 @@ Difficult because of
 The facilities a given language offers for constructing data types have a 
 direct impact on the nature of algorithms that programmers will write on that 
 language.
-The design of such facilities must take into account the constraints imposed by 
-the rest of the language.
+%The design of such facilities must take into account the constraints imposed 
+%by the rest of the language.
 As an example, the aim for referential transparency in functional languages 
 enforces data structures to be immutable.
-Under these constraints, one must then avoid excessive memory copying through 
+Under these constraints, one must avoid excessive memory copying through 
 specialized algorithms~\cite{okasaki.purely}.
 
 In this paper, we discuss the design of recursive data types and an associated
 control facility for a language developed under a different set of
-constraints. \CEU~\cite{ceu.sensys13,ceu.mod15} is an imperative, concurrent and
-reactive language in which the lines of execution, known as \emph{trails},
-react all together continuously and in synchronous steps to external stimuli.
-Being an imperative language, \CEU features mutable data.
-At the same time, it promotes static memory management through lexically-scoped
-memory pools, and safe pointer manipulation even under concurrent trails with 
-orthogonal abortion~\cite{ceu.mod15}.
-These features preclude the availability of general records with arbitrary 
-pointers such as \emph{structs} in C.
+constraints.
+\CEU~\cite{ceu.sensys13,ceu.mod15} is an imperative, concurrent and reactive 
+language in which the lines of execution, known as \emph{trails}, react all 
+together continuously and in synchronous steps to external stimuli.
+%Being an imperative language, \CEU features mutable data.
+At the same time, it promotes mutation of data structures, static memory 
+management through lexically-scoped memory pools, and safe pointer 
+manipulation.
+% even under concurrent trails with orthogonal abortion~\cite{ceu.mod15}.
+These features are incompatible with garbage-collected immutable data 
+structures, but also preclude the availability of general records with 
+arbitrary pointers such as \emph{structs} in C.
 %Recursive data types in \CEU must, therefore, respect the language's
 %memory management guarantees and their use must cope with the synchronous
 %concurrency model.
 
 The solution to this problem is twofold, with data and control aspects.
-For data management, we introduce a \code{data} type construct with a set of 
-restrictions on constructors and assignments that makes static memory 
-management possible.
+For data management, we introduce a restricted form of data types allowing 
+mutation and static memory management.
 For handling reactive control, we propose a structured mechanism that can 
-traverse recursive data types incrementally, in successive reactions to input 
-events.
-\code{traverse} is an iterator-like anonymous block that can be invoked 
-recursively and suspended at any point, retaining the full state and stack 
-frames alive.
+traverse recursive data types safely and incrementally, in successive reactions 
+to input events.
+%\code{traverse} is an iterator-like anonymous block that can be invoked 
+%recursively and suspended at any point, retaining the full state and stack 
+%frames alive.
 
-After we present the design of these constructs, we discuss three applications 
-in the domains of incremental computation and control-oriented DSLs.
+After we present the design of these constructs in Section~\ref{sec.ceu}, we 
+discuss three applications in the domains of incremental computation and 
+control-oriented DSLs in Section~\ref{sec.apps}.
 The applications contain reactive and recursive behavior at the same time and 
 showcase the expressiveness of the proposed constructs.
-TODO: related/conclusion
+Then, we discuss some related work in Section~\ref{sec.related} and make 
+closing remarks in Section~\ref{sec.conclusion}.
 
 \section{C\'eu constructs}
-
-In this section, we present the constructs added to \CEU to support recursive
-data types with reactive traversal.
-
-First we present the general flavor of the language with an introductory 
-example.
-The code in Figure~\ref{lst.intro} defines an input event \code{RESET} (line 
-1), a shared variable \code{v} (line 2), and starts two trails with the 
-\code{par} construct (lines 3-14): the first (lines 4-8) increments variable 
-\code{v} on every second and prints its value on screen; the second (lines 
-10-13) resets \code{v} on every external request to \code{RESET}.
-\CEU is tightly integrated with \emph{C} and can access libraries of the 
-underlying platform directly by prefixing symbols with an underscore (e.g., 
-\code{\_printf(<...>)}, in line 7).
-
-In the synchronous model of \CEU, a program reacts to an occurring event 
-completely before handling the next.
-%
-A reaction represents a logical instant in which all trails awaiting the 
-occurring event awake and execute, one after the other, until they await again 
-or terminate.
-%
-During a reaction, the environment is invariant and does not interrupt the 
-running trails.
-If multiple trails react to the same event, the scheduler employs lexical 
-order, i.e., the trail that appears first in the source code executes first.
-%
-For this reason, programs are deterministic even in the presence of side 
-effects in concurrent lines of execution.
-%
-To avoid infinite execution for reactions, \CEU ensures that all loops contain 
-\code{await} statements~\cite{ceu.sensys13}.
+\label{sec.ceu}
 
 \begin{figure}[t]
 \begin{lstlisting}[numbers=left,xleftmargin=3em]
@@ -250,6 +223,38 @@ end
 }
 \end{figure}
 
+In this section, we present the constructs added to \CEU to support recursive
+data types with reactive traversal.
+
+The introductory example in Figure~\ref{lst.intro} gives a general flavor of 
+the language.
+It first defines an input event \code{RESET} (line 1), a shared variable 
+\code{v} (line 2), and starts two trails with the \code{par} construct (lines 
+3-14): the first (lines 4-8) increments variable \code{v} on every second and 
+prints its value on screen; the second (lines 10-13) resets \code{v} on every 
+external request to \code{RESET}.
+\CEU is tightly integrated with \emph{C} and can access libraries of the 
+underlying platform directly by prefixing symbols with an underscore (e.g., 
+\code{\_printf(<...>)}, in line 7).
+
+In the synchronous model of \CEU, a program reacts to an occurring event 
+completely before handling the next.
+%
+A reaction represents a logical instant in which all trails awaiting the 
+occurring event awake and execute, one after the other, until they await again 
+or terminate.
+%
+During a reaction, the environment is invariant and does not interrupt the 
+running trails.
+If multiple trails react to the same event, the scheduler employs lexical 
+order, i.e., the trail that appears first in the source code executes first.
+%
+For this reason, programs are deterministic even in the presence of side 
+effects in concurrent lines of execution.
+%
+To avoid infinite execution for reactions, \CEU ensures that all loops contain 
+\code{await} statements~\cite{ceu.sensys13}.
+
 \subsection{Recursive Data Types}
 
 The \code{data} construct in \CEU provides a safer alternative to C's
@@ -259,13 +264,9 @@ Figure~\ref{lst.list} illustrates the recursive \code{List} data type,
 declared as a tagged union (lines 1--5).
 The first tag, \code{NIL} (line 2), represents the empty list and is the 
 union's null type.
-The second tag, \code{CONS} (line 4), holds a value in the field \code{int 
-head} and the rest of the list in the recursive field \code{List tail}.
-%
-The \code{pool} keyword declares a memory pool of a given size and
-a (implicit) reference to its root object.
-All memory allocated by \CEU constructs is managed by lexically-scoped memory
-pools.
+The second tag, \code{CONS} (line 4), receives two values in the constructor: 
+the field \code{int head} and the rest of the list in the recursive field 
+\code{List tail}.
 
 \begin{comment}
 A \code{data} entry
@@ -297,32 +298,36 @@ The \code{data} construct in \CEU
 \end{figure}
 \end{comment}
 
-In the first block of the example (lines 7--16), we declare a pool of 
-\code{List} objects of size 1 identified by the root reference \code{lst1} 
-(line 8), which has the scope limited by the \code{do-end} block (lines 7--16).
-The declaration also implicitly initializes the root to the null tag of the 
-associated data type (i.e., \code{List.NIL}).
+In the first block of the example (lines 7--16), we declare a \code{pool} of 
+\code{List} objects of size 1 (line 8).
 %
-Then, we use the \code{=new} construct (lines 9--12), which performs
-allocation and assignment: it attempts to dynamically allocate a list of
-three elements (10, 20, and 30), inferring the destination memory pool based on 
-the assignment's \emph{l-value} prefix (i.e. \code{lst1}).
+All recursive \code{data} instances must reside in an explicit memory pool, 
+which have static memory management based on its lexical scope (lines 7--16).
+%
+A pool also represents the reference to the root instance, which is implicitly 
+initialized to the \emph{null} tag of the associated data type, i.e., 
+\code{lst1} receives \code{List.NIL} (line 8).
+%
+Then, we use the \code{=new} construct (lines 9--12) which performs
+allocation and assignment at the same time: it attempts to dynamically allocate 
+a list of three elements (10, 20, and 30), inferring the destination memory 
+pool based on the assignment's \emph{l-value} prefix (i.e. \code{lst1}).
 %
 Since the pool has size 1, only the allocation of first element succeeds, with 
-the failed allocations returning the null tag (i.e., \code{List.NIL}).
+the failed subtree allocation returning the \emph{null} tag (i.e., 
+\code{List.NIL}).
 The print command (lines 13--14) outputs ``\texttt{10, 1}'': the \code{head} of 
-the first element (the operator \code{`:'} is equivalent to C's \code{`->'}) 
-and a true value for the \code{NIL} check of the second element.
+the first element and a true value for the \code{NIL} check of the second 
+element.
 %
-Finally, the end of the block (line 16) deallocates the pool along with all of 
-its elements.
+Finally, the end of the block (line 16) deallocates the pool along with all 
+elements inside it.
 
 In the second block (lines 18--24), we declare the \code{lst2} pool with an 
 unbounded memory limit (i.e., \code{List[]} in line 19).
 Now, the three-element allocation succeeds (line 20)%
-\footnote{For the sake of brevity, we will omit the data type prefix for tags 
-(e.g., \code{List.CONS} becomes \code{CONS}), given that no examples have 
-clashes between identifiers.}.
+\footnote{To save space, in the next examples we omit the data type prefix in 
+tags (e.g., \code{List.CONS} becomes \code{CONS}).}.
 Then, we mutate the tail of the first element to point to a newly allocated 
 element in the same pool, which also succeeds (line 21).
 In the moment of the mutation, the old subtree (containing values  
@@ -350,16 +355,16 @@ do
                List.CONS(20,
                 List.CONS(30,
                  List.NIL()));
-   _printf("%d, %d\n", lst1:CONS.head,
-                       lst1:CONS.tail:NIL);
+   _printf("%d, %d\n", lst1.CONS.head,
+                       lst1.CONS.tail.NIL);
       // prints 10, 1
 end
 
 do
    pool List[] lst2;
    lst2 = new CONS(10, CONS(20, CONS(30, NIL()));
-   lst2:CONS.tail = new CONS(50, NIL());
-   _printf("%d\n", lst2:CONS.tail:CONS.head);
+   lst2.CONS.tail = new CONS(50, NIL());
+   _printf("%d\n", lst2.CONS.tail.CONS.head);
       // prints 50 (20 and 30 have been freed)
 end
 \end{lstlisting}
@@ -372,9 +377,9 @@ A recursive \code{List} data type definition (lines 1--5) with uses (lines
 
 In \CEU, recursive data types have a number of restrictions.
 Given that mutations deallocate whole subtrees, data types cannot represent 
-general graphs: they must represent tree-like structures.
-Elements in different pools cannot be mixed;
-and pointers to subtrees (i.e., weak references) must be observed via the
+general graphs with cycles, but only tree-like structures.
+Also, elements in different pools cannot be mixed.
+Finally, pointers to subtrees (i.e., weak references) must be observed via the
 \code{watching} construct, as they can be invalidated at any time
 (to be discussed in Section~\ref{sec.traverse}).
 
@@ -382,28 +387,6 @@ and pointers to subtrees (i.e., weak references) must be observed via the
 
 \subsection{Traversing Data Types}
 \label{sec.traverse}
-
-\CEU introduces a structured mechanism to traverse recursive data types.
-The \code{traverse} construct integrates well with the synchronous execution 
-model, supporting nested control compositions, such as \code{await} and all 
-\code{par} variations.
-It also preserves explicit lexical scopes with static memory management.
-
-%We begin by showing the flavor of the construct through an example.
-The code in Figure~\ref{lst.list.sum} creates a list (line 1) and traverses it 
-to calculate the sum of elements (lines 3--11).
-The \code{traverse} block (lines 4--11) starts with the element \code{e} 
-pointing to the root of the list \code{lst}.
-The \code{escape} statement (lines 6 and 9) returns a value to be assigned to 
-the \code{sum} (line 3).
-A \code{NIL} list has \code{sum=0} (lines 5--6).
-A \code{CONS} list needs to calculate the \code{sum} of its tail recursively, 
-invoking \code{traverse} again (line 8), which will create a nested instance of 
-the enclosing \code{traverse} block (lines 4--11), now with \code{e} pointing 
-to \code{e:CONS.tail}.
-%
-When used without event control mechanisms, as in this simple example, a 
-\code{traverse} block is equivalent to an anonymous closure called recursively.
 
 % rebls-15/list/list.ceu
 \begin{figure}[t]
@@ -429,124 +412,30 @@ Calculating the \emph{sum} of a list.
 }
 \end{figure}
 
-% TODO: react.ceu with mutation
+\CEU introduces a structured mechanism to traverse recursive data types.
+The \code{traverse} construct integrates with the synchronous execution model 
+of \CEU and supports nested control compositions, such as \code{await} and all 
+\code{par} variations.
+%It also preserves explicit lexical scopes with static memory management.
 
-However, the \code{traverse} construct does not simply amount to an anonymous 
-recursive block.
-Instead, it takes into account the event system and memory management 
-discipline of \CEU.
-As such, it is an abstraction defined in terms of more fundamental 
-concepts~\cite{ceu.mod15}:
-\emph{organisms}, which are objects with their own concurrent trails of 
-execution, akin to Simula objects;
-and orthogonal abortion, which handles cancellation of trails maintaining 
-memory consistency.
-%
-Figure~\ref{lst.list.sum.react} depicts the expansion of the \code{traverse} 
-construct (to be discussed further).
-
-The example in \emph{CODE-1} of Figure~\ref{lst.list.sum.react} extends the 
-body of the previous example in Figure~\ref{lst.list.sum} with reactive 
-behavior.
-%
-Now, for each recursive iteration, we print the current \code{head} (line 9) 
-and \code{await} 1 second (line 10) before traversing the \code{tail} (line 
-11).
-%
-\CEU enforces at compile time that all accesses to a pointer that cross 
-\code{await} statements are protected with an enclosing \code{watching} 
-block~\cite{ceu.mod15}.
-The \code{watching} aborts its nested block if the referred object is released 
-from memory.
-%
-This ensures that if concurrent side effects affect the pointed object, no code 
-uses stale pointers, because the whole block is aborted.
-%
-With the protection of the \code{watching} block (lines 8--13), if the referred 
-element \code{e} (line 8) is released from memory due to a mutation in the list 
-during the awaiting period (line 10), we simply ignore the whole subtree and 
-return 0 (line 14).
-
-\emph{CODE-2} is the equivalent expansion of \emph{CODE-1} without the 
-\code{traverse} construct.
-The body of the \code{traverse} (lines 5--15 of \emph{CODE-1}) is abstracted in 
-the body of the \code{Frame} class (lines 3--26 of \emph{CODE-2}), which is 
-analogous to a ``stack frame'' of a programming language with subroutines.
-Likewise, the \code{pool} of frames (line 28 of \emph{CODE-2}) is analogous to 
-a runtime ``call stack''.
-We limit the number of stack frames to match the maximum number of elements to 
-traverse (line 1 of \emph{CODE-1} and lines 1,28 of \emph{CODE-2}).
-Therefore, to ``call'' the first \code{traverse} iteration, we dynamically 
-\code{spawn} a \code{Frame} instance into the \code{frames} pool (lines 29--30 
-of \emph{CODE-2}).
-Then, we immediately \code{await} the termination of this \code{frame}, which 
-is in the lowest level of the ``call stack'', i.e., only after the 
-\code{traverse} rolls back and clears the ``call stack'' that we acquire the 
-\code{sum} and print it (line 31--34 of \emph{CODE-2}).
-
-A \code{Frame} receives three arguments in the constructor (lines 4--6 of 
-\emph{CODE-2}:
-a reference to a \code{pool}, to recursively \code{spawn} new frames;
-a reference to its parent frame, to handle abortion;
-and a pointer to the subtree of the data type, to be able to manipulate it.
-%
-The \code{Frame} constructor for the first ``call'' (lines 29--30 of 
-\emph{CODE-2}) receives the static pool of frames, the running organism as the 
-parent (i.e., \code{this}), and the tree of the data type passed to the 
-original \code{traverse} (line 4 of \emph{CODE-1}).
-%
-The \code{Frame} constructor for recursive ``calls'' (lines 15--18 of 
-\emph{CODE-2}) receives the same pool of frames, the current ``stack frame'' as 
-parent, and the subtree of the data type passed to the original recursive 
-\code{traverse} invocation (line 11 of \emph{CODE-1}).
-
-The \code{Frame} body (lines 8--25 of \emph{CODE-1}) always aborts with the
-\code{parent} frame termination.
-Given that a \code{traverse} body can execute (and terminate) trails running 
-concurrently with the recursive invocation, the enclosing \code{watching} 
-guarantees that the hierarchy in the ``call stack'' will be preserved (i.e., 
-that there are no orphan frames executing).
-%
-The remaining code is almost the same in the original \code{traverse} body and 
-in the \code{Frame} body (lines 5--15 of \emph{CODE-1} and lines 9--23 of 
-\emph{CODE-2}).
-The only exception is the recursive invocation of the \code{traverse} (line 11 
-of \emph{CODE-1}), which expands to a \code{spawn} of a \code{Frame} (lines 
-15--18 of \emph{CODE-2}) with similar behavior to the first invocation (lines 
-29--30 of \emph{CODE-2}).
-
-As the expansion illustrates, three aspects make \code{traverse} fundamentally 
-different from an recursive function calls:
-%
-\begin{enumerate}
-\item Each \code{traverse} invocation spawns a new organism which can execute 
-concurrently with other parts of the application.
-Also, each organism itself can invoke multiple concurrent trails, adding more 
-complexity in comparison to standard functions~\cite{ceu.mod15}.
-%
-\item Traversal is declared in terms of a specific lexically-scoped memory pool 
-for a data structure.
-Therefore, we can infer at compile time the maximum traversal depth if the data 
-is bounded (e.g., \code{List[3] lst}).
-Enforcing execution limits is an important requirement for constrained and 
-real-time embedded systems, which is the original application domain of 
-\CEU~\cite{ceu.sensys13}.
-In addition, given that the pool of frames is expanded in the same lexical 
-scope, when the data goes out of scope, all stack frames are automatically 
-aborted~\cite{ceu.mod15}.
-%
-\item The execution body of a \code{traverse} block is implicitly wrapped by a 
-concurrency construct that watches for mutations of the current node.
-In practice, this means that it reacts consistently if another trail of 
-execution modifies the data structure being traversed.
-\end{enumerate}
-
-We believe that the \code{traverse} construct, more than a simple convenience, 
-considerably reduces the complexity of programs, handling a complex hierarchy 
-of behaviors associated with recursive data types automatically.
-
-%TODO: expansion is simplified:
-% option type, mem fail, passing arguments, outer closure
+%We begin by showing the flavor of the construct through an example.
+The code in Figure~\ref{lst.list.sum} creates a list (line 1) and traverses it 
+to calculate the sum of elements (lines 3--11).
+The \code{traverse} block (lines 4--11) starts with the element \code{e} 
+pointing to the root of the list \code{lst}.
+The \code{escape} statement (lines 6 and 9) returns a value to the enclosing 
+assignment to \code{sum} (line 3).
+A \code{NIL} list%
+\footnote{
+The operator \code{`:'}, as in \code{e:NIL}, is equivalent to C's \code{`->'}.
+}
+has \code{sum=0} (lines 5--6).
+A \code{CONS} list needs to calculate the \code{sum} of its tail recursively, 
+invoking \code{traverse} again, which will create a nested instance of the 
+enclosing \code{traverse} block (lines 4--11), now with \code{e} pointing to 
+\code{e:CONS.tail} (line 8).
+Only after its complete subtree is traversed recursively that it adds its 
+\code{head} and returns (line 9).
 
 \begin{figure*}[t]
 \begin{minipage}[t]{0.48\linewidth}
@@ -607,7 +496,7 @@ do
             await 1s;
             var Frame* frame = spawn Frame(this.frames,
                                            this,
-                                           &e:CONS.tail);
+                                           e:CONS.tail);
                                in this.frames;
             var int sum_tail = await *frame;
             escape sum_tail + e:CONS.head;
@@ -619,7 +508,7 @@ do
 end
 
 pool Frame[3] frames;
-var Frame* frame = spawn Frame(frames, this, &lst)
+var Frame* frame = spawn Frame(frames, this, lst)
                    in frames;
 var int sum = await *frame;
 
@@ -636,6 +525,131 @@ with explicit organisms.
 \label{lst.list.sum.react}
 }
 \end{figure*}
+
+When used without event control mechanisms, as in this simple example, a 
+\code{traverse} block is equivalent to an anonymous closure called recursively.
+%
+However, \code{traverse} complies with the event system and memory management 
+discipline of \CEU and is an abstraction defined in terms of a more fundamental 
+concept~\cite{ceu.mod15}:
+\emph{organisms}, which are objects with concurrent trails of execution (akin 
+to Simula~\cite{simula}); and orthogonal abortion, which handles cancellation 
+of trails maintaining memory consistency.
+%
+Figure~\ref{lst.list.sum.react} depicts the expansion of the \code{traverse} 
+construct.
+
+The example in \emph{CODE-1} of Figure~\ref{lst.list.sum.react} extends the 
+body of the previous example in Figure~\ref{lst.list.sum} with reactive 
+behavior.
+%
+Now, for each recursive iteration, we print the current \code{head} (line 9) 
+and \code{await} 1 second (line 10) before traversing the \code{tail} (line 
+11).
+%
+Note that the last iteration of \code{traverse} is waiting for one second 
+before printing ``\texttt{30}'', with all previous iterations blocked and
+retaining their full state of execution.
+Furthermore, this code can be a subprogram of a larger program with other 
+trails in parallel, all of which remain reactive during the incremental 
+traversal.
+
+\CEU enforces at compile time that all accesses to a pointer that cross 
+\code{await} statements are protected with an enclosing \code{watching} 
+block~\cite{ceu.mod15}.
+The \code{watching} aborts its nested block if the referred object is released 
+from memory.
+%
+This ensures that if concurrent side effects affect the pointed object, no code 
+uses the stale pointer, because the whole block is aborted.
+%
+With the protection of the \code{watching} block (lines 8--13), if the referred 
+element \code{e} (line 8) is released from memory due to a mutation in the list 
+during the awaiting period (line 10), we simply ignore the whole subtree and 
+return 0 (line 14).
+
+\emph{CODE-2} is the equivalent expansion of \emph{CODE-1} without the 
+\code{traverse} construct.
+%
+Because it contains concurrency constructs (i.e., \code{await} and 
+\code{watching}), the body of the \code{traverse} (\emph{CODE-1}: 5--15 ) must 
+be abstracted in an organism of the \code{Frame} class (\emph{CODE-2}: 3--26), 
+which is analogous to a ``stack frame'' of standard programming languages with 
+subroutines.
+Likewise, the \code{pool} of frames (\emph{CODE-2}: 28) is analogous to a 
+runtime ``call stack''.
+We limit the number of stack frames to match the maximum number of elements to 
+traverse (\emph{CODE-1}: 1 and \emph{CODE-2}: 1,28).
+Therefore, to ``call'' the first \code{traverse} iteration, we dynamically 
+\code{spawn} a \code{Frame} instance into the \code{frames} pool 
+(\emph{CODE-2}: 29--30).
+Then, we immediately \code{await} the termination of this \code{frame}, which 
+is in the lowest level of the ``call stack'', i.e., only after the 
+\code{traverse} rolls back and clears the ``call stack'' that we acquire the 
+\code{sum} and print it (\emph{CODE-2}: 31--34).
+
+A \code{Frame} receives three arguments in the constructor (\emph{CODE-2}: 
+4--6):
+a reference to a \code{pool} (to recursively \code{spawn} new frames);
+a reference to its parent frame (to handle abortion);
+and a pointer to the subtree of the data type (to be able to manipulate it).
+%
+The \code{Frame} constructor for the first ``call'' (\emph{CODE-2}: 29--30) 
+receives the static pool of frames, the running organism as the parent (i.e., 
+\code{this}), and the tree of the data type passed to the original 
+\code{traverse} (\emph{CODE-1}: 4).
+%
+The \code{Frame} constructor for recursive ``calls'' (\emph{CODE-2}: 15--18) 
+receives the same pool of frames, the current ``stack frame'' as parent, and 
+the subtree of the data type passed to the original recursive \code{traverse} 
+invocation (\emph{CODE-1}: 11).
+
+The \code{Frame} body (\emph{CODE-1}: 8--25) always aborts with the
+\code{parent} frame termination.
+Given that a \code{traverse} body can execute (and terminate) trails running 
+concurrently with the recursive invocation, the enclosing \code{watching} 
+guarantees that the hierarchy in the ``call stack'' will be preserved (i.e., 
+that there are no orphan frames executing).
+%
+The remaining code is almost the same in the original \code{traverse} body and 
+in the \code{Frame} body (\emph{CODE-1}: 5--15 and \emph{CODE-2}: 9--23).
+The only exception is the recursive invocation of the \code{traverse} 
+(\emph{CODE-1}: 11), which expands to a \code{spawn} of a \code{Frame} 
+(\emph{CODE-2}: 15--18) with similar behavior to the first invocation 
+(\emph{CODE-2}: 29--30).
+
+As the expansion illustrates, three aspects make \code{traverse} fundamentally 
+different from an recursive function calls:
+%
+\begin{enumerate}
+\item Each \code{traverse} invocation spawns a new organism which can execute 
+concurrently with other parts of the application.
+Also, each organism itself can invoke multiple concurrent trails, adding more 
+complexity in comparison to standard functions~\cite{ceu.mod15}.
+%
+\item Traversal is declared in terms of a specific lexically-scoped memory pool 
+for a data structure.
+Therefore, we can infer at compile time the maximum traversal depth if the data 
+is bounded (e.g., \code{List[3] lst}).
+Enforcing execution limits is an important requirement for constrained and 
+real-time embedded systems, which is the original application domain of 
+\CEU~\cite{ceu.sensys13}.
+In addition, given that the pool of frames is expanded in the same lexical 
+scope, when the data goes out of scope, all stack frames are automatically 
+aborted~\cite{ceu.mod15}.
+%
+\item The execution body of a \code{traverse} block is implicitly wrapped by a 
+concurrency construct that watches for mutations of the current node.
+In practice, this means that it reacts consistently if another trail of 
+execution modifies the data structure being traversed.
+\end{enumerate}
+
+We believe that the \code{traverse} construct, more than a simple convenience, 
+considerably reduces the complexity of programs, handling a complex hierarchy 
+of behaviors associated with recursive data types automatically.
+
+%TODO: expansion is simplified:
+% option type, mem fail, passing arguments, outer closure
 
 \begin{comment}
 \CEU can also ensure termination for \code{traverse}
@@ -679,6 +693,7 @@ Calculating the \emph{sum} of a list.
 \end{comment}
 
 \section{Applications}
+\label{sec.apps}
 
 In this section, we present three applications that explore the reactive and 
 incremental nature of the \code{traverse} construct.
@@ -850,61 +865,6 @@ tracing curves.
 % representing one of the supported Logo commands. A tree of nodes represents a 
 % program, and the interpreter is implemented as a traversal of this tree.
 
-Figure~\ref{lst.turtle} presents the data type \code{Command} (lines 1--9), 
-which specifies the abstract syntax of our Logo variant.
-As in traditional Logo, commands can execute in sequence through the \code{SEQ} 
-tag (line 4), and can also repeat a number of times through the \code{REPEAT} 
-tag (line 6).
-%
-Our variant extends the \code{MOVE} and \code{ROTATE} commands to take as 
-arguments the speed at which they should affect the turtle (lines 8 and 12).
-For example, a \code{Command.MOVE(300)} node directs the turtle to move at the 
-speed of 300 pixels per second, indefinitely.
-%
-Therefore, the only way to make the turtle stop moving or rotating is through 
-two \CEU-like extensions added to our Logo variant:
-The \code{AWAIT} tag (line 12) simply awaits a given number of milliseconds.
-The \code{PAROR} tag (line 14), modeled after the \CEU construct \code{par/or},
-launches two commands in parallel, and aborts both of them as soon as one of
-them finishes.
-%
-As an example, the program in Figure~\ref{lst.turtle.example} makes the turtle 
-to move along a semicircle.
-
-The interpreter for the commands is also abstracted in a class definition 
-(lines 17--52 of Figure~\ref{lst.turtle}).
-%
-It holds as attributes a reference to a \code{Turtle} object (which implements 
-the UI) and reference to the commands (lines 18--19).
-The execution body of the class uses the \code{traverse} construct to interpret 
-the commands (lines 21--51).
-%
-The \code{SEQ} tag (lines 23--25) traverses each of its child commands in 
-sequence (in contrast with the \code{BTreeInterpreter}, it does not handle 
-failures).
-%
-The \code{REPEAT} tag (lines 27--30) traverses its command the specified number 
-of times.
-%
-The \code{MOVE} and \code{ROTATE} tags (lines 32--34 and 36--38) relies on 
-predefined classes of organisms to update the position and orientation of the 
-\code{turtle} received as argument in the constructor (line 18).
-%
-The \code{AWAIT} tag (lines 40--41) simply causes the current trail of 
-execution of the interpreter to await the given amount of time.
-%
-Finally, the \code{PAROR} tag (lines 40--48) uses the \code{par/or} construct
-to traverse both subcommands at the same time. As per the semantics of
-\code{par/or}, as soon as one of the subtrees terminate its execution,
-the other one is aborted.
-
-Note that the entire interpreter block is surrounded by a \code{watching}
-construct (line 22).
-As discussed in Section~\ref{sec.traverse}, the \CEU compiler enforces the 
-presence of a guard, due to the use of the \code{cmd} pointer in code that 
-spans multiple reactions. This ensures clean abortion in case the AST is 
-mutated by code running other trails.
-
 % rebls-15/turtle/turtle-2.ceu
 % rebls-15/turtle/turtle-7.ceu
 \begin{figure}[t]
@@ -969,7 +929,7 @@ end
 
 \begin{verbatim}
 \end{verbatim}
-\begin{figure}[t]
+\begin{figure}[h!]
 \begin{lstlisting}[numbers=left,xleftmargin=3em]
 pool Command[] cmds =
    new PAROR(
@@ -984,6 +944,147 @@ do CommandInterpreter(turtle, cmds);
 \label{lst.turtle.example}
 }
 \end{figure}
+
+\begin{figure*}[t]
+\begin{minipage}[t]{0.22\linewidth}
+\begin{lstlisting}[title=CODE-3: \code{Queue} type]
+data Queue with
+  tag NIL ();
+or
+  tag ROOT (Queue running,
+            Queue waiting,
+            Queue tmp);
+or
+  tag ITEM (Command cmds,
+            Queue prv);
+end
+
+
+
+
+
+
+
+
+
+
+.
+\end{lstlisting}
+\end{minipage}
+%
+\begin{minipage}[t]{0.36\linewidth}
+\begin{lstlisting}[numbers=left,xleftmargin=3.5em,title=CODE-4: Queue traversal]
+traverse qu in queue do
+  watching qu do
+    if qu:ROOT then
+      loop do
+        par/and do
+          traverse qu:ROOT.running;
+        with
+          await qu:ROOT.waiting;
+        end
+        qu:ROOT.running =
+          qu:ROOT.waiting;
+        qu:ROOT.waiting =
+          new ITEM(NOTHING(), NIL());
+      end
+    else/if qu:ITEM then
+      traverse qu:ITEM.prv;
+      do CommandInterpreter(
+            turtle, qu:ITEM.cmds);
+    end
+  end
+end
+\end{lstlisting}
+\end{minipage}
+%
+\begin{minipage}[t]{0.39\linewidth}
+\begin{lstlisting}[numbers=left,xleftmargin=3.5em,title=CODE-5: Enqueuing commands]
+input (char*,int,int) ENQUEUE;
+every (cmd,vel,time) in ENQUEUE do
+  if _strcmp(cmd,"move")==0 then
+    queue.ROOT.tmp =
+      new ITEM(
+            PAROR(
+              MOVE(vel),
+              AWAIT(time)),
+            NIL());
+  else/if _strcmp(cmd,"rotate")==0 then
+    <...> // analogous to the MOVE above
+  end
+  queue.ROOT.tmp.ITEM.prv =
+    queue.ROOT.waiting.ITEM.prv;
+  queue.ROOT.waiting = queue.ROOT.tmp;
+end
+
+
+
+
+.
+\end{lstlisting}
+\end{minipage}
+%
+%\rule{17.5cm}{0.37pt}
+\caption{ Queue extension for the Turtle DSL of
+          Figure~\ref{lst.turtle}.
+\label{lst.turtle.queue}
+}
+\end{figure*}
+
+Figure~\ref{lst.turtle} presents the data type \code{Command} (lines 1--9), 
+which specifies the abstract syntax of our Logo variant.
+As in traditional Logo, commands can execute in sequence through the \code{SEQ} 
+tag (line 4), and can also repeat a number of times through the \code{REPEAT} 
+tag (line 6).
+%
+Our variant extends the \code{MOVE} and \code{ROTATE} commands to take as 
+arguments the speed at which they should affect the turtle (lines 8 and 12).
+For example, a \code{Command.MOVE(300)} node directs the turtle to move at the 
+speed of 300 pixels per second, indefinitely.
+%
+Therefore, the only way to make the turtle stop moving or rotating is through 
+two \CEU-like extensions added to our Logo variant:
+The \code{AWAIT} tag (line 12) simply awaits a given number of milliseconds.
+The \code{PAROR} tag (line 14), modeled after the \CEU construct \code{par/or},
+launches two commands in parallel, and aborts both of them as soon as one of
+them finishes.
+%
+As an example, the program in Figure~\ref{lst.turtle.example} makes the turtle 
+to move along a semicircle.
+
+The interpreter for the commands is also abstracted in a class definition 
+(lines 17--52 of Figure~\ref{lst.turtle}).
+%
+It holds as attributes a reference to a \code{Turtle} object (which implements 
+the UI) and reference to the commands (lines 18--19).
+The execution body of the class uses the \code{traverse} construct to interpret 
+the commands (lines 21--51).
+%
+The \code{SEQ} tag (lines 23--25) traverses each of its child commands in 
+sequence (in contrast with the \code{BTreeInterpreter}, it does not handle 
+failures).
+%
+The \code{REPEAT} tag (lines 27--30) traverses its command the specified number 
+of times.
+%
+The \code{MOVE} and \code{ROTATE} tags (lines 32--34 and 36--38) relies on 
+predefined classes of organisms to update the position and orientation of the 
+\code{turtle} received as argument in the constructor (line 18).
+%
+The \code{AWAIT} tag (lines 40--41) simply causes the current trail of 
+execution of the interpreter to await the given amount of time.
+%
+Finally, the \code{PAROR} tag (lines 40--48) uses the \code{par/or} construct
+to traverse both subcommands at the same time. As per the semantics of
+\code{par/or}, as soon as one of the subtrees terminate its execution,
+the other one is aborted.
+
+Note that the entire interpreter block is surrounded by a \code{watching}
+construct (line 22).
+As discussed in Section~\ref{sec.traverse}, the \CEU compiler enforces the 
+presence of a guard, due to the use of the \code{cmd} pointer in code that 
+spans multiple reactions. This ensures clean abortion in case the AST is 
+mutated by code running other trails.
 
 \subsection{Enqueuing Commands}
 \label{sub.enqueuing}
@@ -1094,92 +1195,6 @@ The \code{tmp} field is automatically set to \code{NIL} (mark~\MM{(f)}).
 
 - TODO: modularization of data type and travesal
 
-\begin{figure*}[t]
-\begin{minipage}[t]{0.22\linewidth}
-\begin{lstlisting}[title=CODE-3: \code{Queue} type]
-data Queue with
-  tag NIL ();
-or
-  tag ROOT (Queue running,
-            Queue waiting,
-            Queue tmp);
-or
-  tag ITEM (Command cmds,
-            Queue prv);
-end
-
-
-
-
-
-
-
-
-
-
-.
-\end{lstlisting}
-\end{minipage}
-%
-\begin{minipage}[t]{0.36\linewidth}
-\begin{lstlisting}[numbers=left,xleftmargin=3.5em,title=CODE-4: Queue traversal]
-traverse qu in queue do
-  watching qu do
-    if qu:ROOT then
-      loop do
-        par/and do
-          traverse qu:ROOT.running;
-        with
-          await qu:ROOT.waiting;
-        end
-        qu:ROOT.running =
-          qu:ROOT.waiting;
-        qu:ROOT.waiting =
-          new ITEM(NOTHING(), NIL());
-      end
-    else/if qu:ITEM then
-      traverse qu:ITEM.prv;
-      do CommandInterpreter(
-            turtle, qu:ITEM.cmds);
-    end
-  end
-end
-\end{lstlisting}
-\end{minipage}
-%
-\begin{minipage}[t]{0.39\linewidth}
-\begin{lstlisting}[numbers=left,xleftmargin=3.5em,title=CODE-5: Enqueuing commands]
-input (char*,int,int) ENQUEUE;
-every (cmd,vel,time) in ENQUEUE do
-  if _strcmp(cmd,"move")==0 then
-    queue.ROOT.tmp =
-      new ITEM(
-            PAROR(
-              MOVE(vel),
-              AWAIT(time)),
-            NIL());
-  else/if _strcmp(cmd,"rotate")==0 then
-    <...> // analogous to the MOVE above
-  end
-  queue.ROOT.tmp.ITEM.prv =
-    queue.ROOT.waiting.ITEM.prv;
-  queue.ROOT.waiting = queue.ROOT.tmp;
-end
-
-
-
-
-.
-\end{lstlisting}
-\end{minipage}
-%
-%\rule{17.5cm}{0.37pt}
-\caption{ Queue extension for the Turtle DSL of
-          Figure~\ref{lst.turtle}.
-\label{lst.turtle.queue}
-}
-\end{figure*}
-
 \begin{figure}[t]
 \centering
 \includegraphics[scale=0.26]{queue-fig-1.eps}
@@ -1199,6 +1214,7 @@ Enqueuing new commands.
 \end{figure}
 
 \section{Related Work}
+\label{sec.related}
 
 Synchronous languages - data types in synchronous languages
 
@@ -1225,6 +1241,7 @@ Follow the references.
 \end{comment}
 
 \section{Conclusion}
+\label{sec.conclusion}
 
 We presented a new construct for traversing recursive data types
 incrementally, in the context of \CEU, an imperative reactive language with
