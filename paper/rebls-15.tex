@@ -8,6 +8,7 @@
 
 \usepackage{verbatim}
 \usepackage{enumitem}
+\usepackage{epstopdf}
 
 \usepackage{color}
 \definecolor{light}{gray}{0.87}
@@ -699,6 +700,7 @@ Finally, we extend the Turtle example with a dynamic and concurrent queue of
 commands that can affect the running program.
 
 \subsection{Behavior Trees}
+\label{subsec.bt}
 
 \emph{Behavior Trees} are a family of DSLs used for game AI.
 The term is loose, because different games use different languages.
@@ -1198,29 +1200,40 @@ Enqueuing new commands.
 \section{Related Work}
 \label{sec.related}
 
-Synchronous languages - data types in synchronous languages
+Traversing data reactively in an imperative language requires
+dealing with concurrent updates. While attempts are made to make to this
+process more transparent, performance concerns ultimately require the
+programmer to specify behavior explicitly. In \cite{ripdataflow}, one-way
+dataflow constraints are used to track updates in data structures in a
+reactive imperative language. Programmers need to annotate classes with
+constraint handler functions, which are then recursively called in the event
+of value updates. Another approach, focused on incremental computation, led to
+the development of self-adjusting computation \cite{selfadjusting}, using a
+combination of dynamic dependency graphs and memoization. Keeping track of
+dependencies incurs significant overhead: traceable data types
+\cite{traceable} are one approach for mitigating this issue by letting the
+programmer control the granularity of tracked data. In \CEU, tracking pointer
+updates is explicit (and enforced), and the move semantics for assignment of
+recursive data fields is designed to interact correctly with the traversal
+construct.
 
-Data structures under constraints: functional/immutable data structures, persistent data structures.
-
-Traversing data structures: syntactic support and expressivity
-
-- Python generators
-
-- Lua iterators (coroutines + generic for)
-
-- generators in Icon
-(1981 paper "Generators in Icon": keywords include "goal-directed programming, generators,
-nondeterministic programming, backtracking" -- talks about 'control backtracking', which
-looks conceptually like behavior trees)
-http://drhanson.s3.amazonaws.com/storage/documents/generators-in-icon.pdf
-
-
-\begin{comment}
-What to compare against???
-
-Found this: http://arxiv.org/pdf/1104.2293.pdf
-Follow the references.
-\end{comment}
+Introducing a control structure specifically for traversing recursive data is
+unusual, but parallels can be made to other languages. Generators trace their
+history back to CLU \cite{clu}, but their implementation was stackless and
+therefore did not support recursion. Icon \cite{icon} allows yielding through
+recursive functions, but delegation is explicit via the \code{suspend}
+kewyord. In \cite{icon}, Icon generators are used for implementing
+goal-directed programming via ``control backtracking'' similarly to selector
+nodes presented in Section \ref{subsec.bt}. Python originally
+introduced CLU-like stackless generators in version 2.2 \cite{pep255}, but
+those were later internally promoted to coroutines in order to support
+recursion \cite{pep342}. Finally, in version 3.3, a form of delegation was
+introduced. In contrast, Lua \cite{lua} has first-class stackful coroutines:
+generator functions have to be constructed by wrapping coroutine objects, but
+there is no need for explicit delegation in recursive calls. \CEU builds its
+higher-level \code{traverse} construct on organisms, which are also a primitive
+for cooperative multitasking, supporting recursion and concurrency
+transparently.
 
 \section{Conclusion}
 \label{sec.conclusion}

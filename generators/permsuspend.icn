@@ -1,4 +1,8 @@
 
+# Used this as a starting point:
+# http://rosettacode.org/wiki/Permutations#Icon_and_Unicon
+# Modified to make it work like the Lua and Python examples.
+
 procedure getPermutations(str, prefix)
    if *str <= 1 then {
       suspend prefix ||| str
