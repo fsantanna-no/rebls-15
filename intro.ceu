@@ -1,0 +1,48 @@
+#define HEADER_TITLE "Introductory Example"
+#include "header.ceu"
+
+#ifdef ALL
+do Intro with
+    this.title = "Example of Figure 1:\n > Introduction";
+end;
+#endif
+
+input void RESET;  // declares an external event
+var int v = 0;     // variable shared by the trails
+par/or do
+   loop do         // 1st trail
+      await 1s;
+      v = v + 1;
+      _printf("v = %d\n", v);
+   end
+with
+   loop do         // 2nd trail
+      await RESET;
+      v = 0;
+   end
+with
+    await 3500ms;
+    async do
+        _printf(">>> RESET\n");
+        emit RESET;
+    end
+    await 2000ms;
+    async do
+        _printf(">>> RESET\n");
+        emit RESET;
+    end
+    await 2500ms;
+end
+
+#ifdef ALL
+await 2s;
+_printf("\n");
+_printf("--------------------------------\n");
+_printf(" > OK\n");
+_printf("--------------------------------\n");
+
+await FOREVER;
+#else
+escape 0;
+#endif
+
