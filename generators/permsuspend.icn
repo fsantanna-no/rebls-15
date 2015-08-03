@@ -1,0 +1,16 @@
+
+procedure getPermutations(str, prefix)
+   if *str <= 1 then {
+      suspend prefix ||| str
+   } else {
+      every i := 1 to *str do {
+         before := if i >= 2 then str[1:i] else []
+         after := if i < *str then str[i+1:0] else []
+         suspend getPermutations(before ||| after, prefix ||| str[i:i+1])
+      }
+   }
+end
+
+procedure main(input)
+    every p := getPermutations(input, []) do every writes(!p|"\n")
+end
