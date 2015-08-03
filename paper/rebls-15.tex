@@ -691,7 +691,7 @@ Calculating the \emph{sum} of a list.
 
 In this section, we present three applications that explore the reactive and 
 incremental nature of the \code{traverse} construct.
-We start with standard \emph{Behavior Trees} used in video games for AI 
+We start with \emph{Behavior Trees} used in video games for AI 
 modeling~\cite{isla2005,hecker2009my}.
 Then, we show a \emph{Logo Turtle}~\cite{papert.logo} that can execute commands 
 in parallel (e.g., \code{move} and \code{rotate}).
@@ -703,7 +703,8 @@ commands that can affect the running program.
 \emph{Behavior Trees} are a family of DSLs used for game AI.
 The term is loose, because different games use different languages.
 For our purposes it indicates an interpreted domain-specific language
-for concurrent creature behavior that includes sequence and selection combinators.
+for concurrent creature behavior that includes sequence (\code{SEQ}) and 
+selection (\code{SEL}) combinators.
 
 The \code{SEQ} can be understood as short-circuit evaluation of an `and',
 while the \code{SEL} corresponds to an `or'.
@@ -729,12 +730,13 @@ The \code{LEAF} tag (line 8) receives a reference to a \code{Leaf} data type,
 which is defined externally, carrying opaque values that are specific to the 
 application domain.
 %
-The interpreter for tree instances is abstracted in a class definition (lines 
-11--37), which receives the tree to execute as an argument (line 12), acquires 
-the return status of the traversal (line 14) and returns it as its final result 
-(lines 36).
+The interpreter for trees is abstracted in a class definition (lines 11--37) 
+and receives the tree to traverse as the argument (line 12).
+The body acquires the return status of the traversal (line 14) and returns it 
+as its final result (lines 36).
 %
-The traversal takes into account the semantics of the composite nodes.
+The traversal takes into account the semantics of the composite nodes as 
+described before.
 %
 For the \code{SEQ} tag (lines 16--22), we traverse the \code{first} subtree 
 (line 17) and only if it succeeds, we traverse the \code{second} subtree (line 
@@ -749,9 +751,9 @@ The \code{do Class} syntax (line 31--32) creates an anonymous and lexically
 scoped organism of the referred class and awaits its termination.
 The organism itself can contain any valid code in \CEU and execute for an 
 arbitrary amount of time~\cite{ceu.mod15}.
-The tree traversal hangs and waits for its return status (line 33).
-This is the expected behavior given that \code{SEQ} and \code{SEL} nodes want 
-to execute their children in sequence.
+The tree traversal hangs and waits for its return status (line 33), which is 
+the expected behavior given that both \code{SEQ} and \code{SEL} nodes execute 
+their children in sequence.
 
 % rebls-15/bts-ceu/btree-1.ceu
 \begin{figure}[t]
@@ -801,48 +803,55 @@ A simple generic grammar of behavior trees with \emph{sequence} and
 }
 \end{figure}
 
-The blocks world is a classical planning domain~\cite{slaney2001blocks}.
-The leaves of a behavior tree in an extended blocks world domain
-might include sensor leaves that either succeed or fail,
-as well as actuator leaves that move blocks and unconditionally succeed.
-
-The tree in Figure~\ref{lst.bt1.example} is based on output from Contingent-FF~\cite{hoffmann2005contingent},
-and the blocks domain extended with sensor actions is one of Contingent-FF's benchmark problems.
-Here, we want to achieve an ABC stack.
-We assume we pinned down the situation to two possibilities.
+As an example of a domain, the \emph{blocks world} is a classical planning 
+domain in AI~\cite{slaney2001blocks}.
 %
-We use a \code{SEL} node (line 1) to go through them,
-and a sensor leaf (line 2) to decide which strategy is appropriate:
-If it senses that C directly on top of the table,
-then we move B, then C, then A (line 3).
-If the sensor does not succeed, we move to the second sequence of
-the selection (lines 4-6): we move C from B to the table
-and B from the table to A. Finally, completing the outer sequence
-that applies to both cases, we move C from the table to B (line 7),
-thus achieving an ABC stack.
+The tree in Figure~\ref{lst.bt1.example} is based on the output from a
+Contingent-FF benchmark that extends the blocks domain with sensor 
+actions~\cite{hoffmann2005contingent}.
+%
+%The leaves of a behavior tree might include sensor leaves that either succeed 
+%or fail, as well as actuator leaves that move blocks and unconditionally 
+%succeed.
+%
+Here, we want to achieve an \code{ABC} stack and assume we pinned down the 
+situation to two possibilities illustrated in the figure.
+%
+We use a \code{SEL} node (line 3) with a sensor leaf (line 4) to decide which 
+strategy is appropriate:
+If \code{C} is not sensed on top of the table, we first move it to the table 
+(line 5).
+Then, we stack \code{B} on top of \code{A}, and \code{C} on top of \code{B} 
+(lines 6--7).
 
-This illustrates how the behavior tree can exhibit goal-directed behavior.
-The goal-directedness is not automatic; rather, behavior trees are authored
-by designers to exhibit goal-directedness.
-The \code{traverse} feature allows behavior authored at runtime,
-which is one of the crucial features of behavior trees.
-Alternatively, \code{traverse} allows \CEU to
-to consume at runtime the output of CPU-intensive algorithms such as planners.
+%If the sensor does not succeed, we move to the second sequence of
+%the selection (lines 4-6): we move C from B to the table
+%and B from the table to A. Finally, completing the outer sequence
+%that applies to both cases, we move C from the table to B (line 7),
+%thus achieving an ABC stack.
+
+The example illustrates how the behavior tree can exhibit goal-directed 
+behavior specified directly by domain designers.
+The \code{traverse} feature allows behavior authored at runtime, which is one 
+of the crucial features of behavior trees.
+%
+Alternatively, \code{traverse} allows \CEU to consume at runtime the output of 
+CPU-intensive algorithms such as planners.
 
 \begin{figure}[t]
 \begin{lstlisting}[numbers=left,xleftmargin=3em]
-pool BTree[] btree = new SEQ(SEL(SEQ(
-      LEAF(SENSE_ON_TABLE(C)),
-      LEAF(MOVE_BLOCK_TO_BLOCK(B, C, A))),
-    SEQ(
-      LEAF(MOVE_TO_TABLE(C, B)),
-      LEAF(MOVE_FROM_TABLE(B, A)))),
-  LEAF(MOVE_FROM_TABLE(C, B)));
+pool BTree[] btree =
+   new SEQ(SEQ,
+         SEL(
+           LEAF(SENSE_ON_TABLE(C)),
+           LEAF(MOVE_BLOCK_TO_TABLE(C))),
+         LEAF(MOVE_BLOCK_TO_BLOCK(B, A)),
+         LEAF(MOVE_BLOCK_TO_BLOCK(C, B)));
 \end{lstlisting}
 
 \centerline{\includegraphics[scale=0.35]{blocksworld2.eps}}
 %\rule{8.5cm}{0.37pt}
-\caption{ A blocks world behavior tree.
+\caption{ A \emph{blocks world} behavior tree.
 \label{lst.bt1.example}
 }
 \end{figure}
