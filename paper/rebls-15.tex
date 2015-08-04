@@ -193,15 +193,6 @@ All examples have working implementations:
 \end{itemize}
 \end{comment}
 
-\begin{comment}
-Difficult because of
-    multiple stack frames
-    concurrent stack frames
-    persistent stack frames (across reactions, with other parts executing)
-    static memory management
-    mutation of the data structure being traversed
-\end{comment}
-
 The facilities a given language offers for constructing data types have a 
 direct impact on the nature of algorithms that programmers will write on that 
 language.
@@ -216,10 +207,10 @@ In this paper, we discuss the design of recursive data types and an associated
 control facility for a language developed under a different set of
 constraints.
 \CEU~\cite{ceu.sensys13,ceu.mod15} is an imperative, concurrent and reactive 
-language in which the lines of execution, known as \emph{trails}, react all 
+language in which lines of execution, known as \emph{trails}, react 
 together continuously and in synchronous steps to external stimuli.
 %Being an imperative language, \CEU features mutable data.
-\CEU supports mutable data structures with static memory and safe pointer 
+\CEU supports mutable data, with static memory and safe pointer 
 manipulation.
 % even under concurrent trails with orthogonal abortion~\cite{ceu.mod15}.
 These features are incompatible with garbage-collected immutable data 
@@ -231,16 +222,16 @@ structures, as well as with general records with arbitrary pointers such as
 
 The solution to this problem is twofold, with data and control aspects.
 For data management, we introduce a restricted form of recursive data types 
-that supports trees (but not more general graphs).
-To manage reactive behavior, we propose a structured mechanism that can 
-traverse data types safely and incrementally, in successive reactions to input 
+that supports trees (but not general graphs).
+To control reactive behavior, we propose a structured mechanism that can 
+traverse data types safely and incrementally, in successive reactions to 
 events.
 %\code{traverse} is an iterator-like anonymous block that can be invoked 
 %recursively and suspended at any point, retaining the full state and stack 
 %frames alive.
 %
 After we present the design of these constructs, we discuss three applications 
-in the domain control-oriented DSLs.
+in the domain of control-oriented DSLs.
 %The applications contain reactive and recursive behavior at the same time and 
 %showcase the expressiveness of the proposed constructs.
 %Then, we discuss some related work in Section~\ref{sec.related} and make 
@@ -1162,7 +1153,7 @@ Except when creating a new command, the \code{tmp} field is always \code{NIL}.
 
 \begin{figure}[t]
 \centering
-\includegraphics[scale=0.26]{queue-fig-1.eps}
+\includegraphics[scale=0.24]{queue-fig-1.eps}
 \caption{
 Swapping \code{waiting} and \code{running} commands.
 \label{fig.queue-1}
@@ -1244,14 +1235,14 @@ subsequent enqueue operations.
 %
 \end{itemize}
 
-\begin{figure}[t]
+\begin{figure*}[t]
 \centering
-\includegraphics[scale=0.26]{queue-fig-2.eps}
+\includegraphics[scale=0.24]{queue-fig-2.eps}
 \caption{
 Enqueuing new commands.
 \label{fig.queue-2}
 }
-\end{figure}
+\end{figure*}
 
 \section{Related Work}
 \label{sec.related}
@@ -1298,10 +1289,10 @@ We presented a new construct for traversing recursive data types
 incrementally, in the context of \CEU, an imperative reactive language with
 synchronous concurrency. The \code{traverse} construct encapsulates an idiom
 for performing recursive traversal by handling each step as a separate trail
-of execution. This allows parallel traversal using the language's concurrency
-features, while maintaining its safety properties.
+of execution. It allows parallel traversal using the language's concurrency
+features and maintains its safety properties.
 
-This kind of traversal can be performed in \CEU through the use of organisms
+This kind of traversal can be done in \CEU through the use of organisms
 (pooled objects which launch their own execution trails) and orthogonal
 abortion via the \code{watching} construct. Combining these features to
 traverse a recursive data structure correctly, however, is not straightforward.
