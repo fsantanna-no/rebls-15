@@ -314,11 +314,12 @@ The \code{data} construct in \CEU provides a safer alternative to C's
 %
 Figure~\ref{lst.list} illustrates the recursive \code{List} data type,
 declared as a tagged union (lines 1--5).
-The first tag, \code{NIL} (line 2), represents the empty list and is the 
-union's null type.
-The second tag, \code{CONS} (line 4), receives two values in the constructor: 
-the field \code{int head} and the rest of the list in the recursive field 
-\code{List tail}.
+The first tag of recursive types has a special meaning and is the union 
+\emph{null} type.
+In the example, the tag \code{NIL} also represents an empty list (line 2).
+The second tag, \code{CONS} (line 4), receives two arguments in the 
+constructor: an integer value for the \code{head} field and the rest of the 
+list in the recursive field \code{tail}.
 
 \begin{comment}
 A \code{data} entry
@@ -354,22 +355,25 @@ In the first block of the example (lines 7--16), we declare a \code{pool} of
 \code{List} objects of size 1 (line 8).
 %
 All recursive \code{data} instances must reside in an explicit memory pool, 
-which have static memory management based on its lexical scope (lines 7--16).
+which have static memory management based on its enclosing lexical scope (lines 
+7--16).
 %
 A pool also represents the reference to the root instance, which is implicitly 
 initialized to the \emph{null} tag of the associated data type, i.e., 
 \code{lst1} receives \code{List.NIL} (line 8).
 %
-Then, we use the \code{=new} construct (lines 9--12) which performs
-allocation and assignment at the same time: it attempts to dynamically allocate 
-a list of three elements (10, 20, and 30), inferring the destination memory 
-pool based on the assignment's \emph{l-value} prefix (i.e. \code{lst1}).
+Then, we use the \code{=new} construct which performs
+allocation and assignment at the same time (lines 9--12):
+it attempts to dynamically allocate a list of three elements (10, 20, and 30),
+and assigns the result to the \emph{l-value}.
+The destination memory pool for the allocation is inferred from the prefix of 
+the \emph{l-value} (i.e. \code{lst1}).
 %
 Since the pool has size 1, only the allocation of first element succeeds, with 
 the failed subtree allocation returning the \emph{null} tag (i.e., 
 \code{List.NIL}).
 The print command (lines 13--14) outputs ``\texttt{10, 1}'': the \code{head} of 
-the first element and a true value for the \code{NIL} check of the second 
+the first element, and \emph{true} for the \code{NIL} check of the second 
 element.
 %
 Finally, the end of the block (line 16) deallocates the pool along with all 
@@ -377,18 +381,18 @@ elements inside it.
 
 In the second block (lines 18--24), we declare the \code{lst2} pool with an 
 unbounded memory limit (i.e., \code{List[]} in line 19).
-Now, the three-element allocation succeeds (line 20)%
+Now, all allocations succeed (line 20)%
 \footnote{To save space, in the next examples we omit the data type prefix in 
 tags (e.g., \code{List.CONS} becomes \code{CONS}).}.
 Then, we mutate the tail of the first element to point to a newly allocated 
 element in the same pool, which also succeeds (line 21).
-In the moment of the mutation, the old subtree (containing values  
+At the moment of the mutation, the old subtree (containing values  
 ``\texttt{20}'' and  ``\texttt{30}'') is completely removed from memory.
 The print command (line 22) outputs ``\texttt{50}'', displaying the \code{head}
 of the new second element.
 %
 Again, the end of the block (line 24) deallocates the pool along with all of 
-its elements.
+its remaining elements.
 
 %TODO: comment that invalid tag generates runtime error?
 
