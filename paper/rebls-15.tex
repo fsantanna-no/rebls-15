@@ -4,7 +4,7 @@
 \usepackage{xspace}
 \newcommand{\CEU}{\textsc{C\'{e}u}\xspace}
 \newcommand{\code}[1] {{\small{\texttt{#1}}}}
-\newcommand{\MM}[1] {{\textbf{\texttt{#1}}}}
+\newcommand{\MM}[1] {\textcircled{\tiny{\textsf{#1}}}}
 
 \usepackage{verbatim}
 \usepackage{enumitem}
@@ -474,7 +474,6 @@ _printf("sum = %d\n", sum);
 
 
 
-
 .
 \end{lstlisting}
 \end{minipage}
@@ -513,8 +512,7 @@ var Frame* frame = spawn Frame(frames, this, lst)
                    in frames;
 var int sum = await *frame;
 
-_printf("sum = %d\n", sum);
-      // prints 60
+_printf("sum = %d\n", sum); // prints 60
 \end{lstlisting}
 \end{minipage}
 %
@@ -1124,19 +1122,19 @@ parallel) mutates the \code{waiting} subtree (line 8), meaning that the queue
 is no longer empty.
 The swapping process (lines 10--13) is illustrated in Figure~\ref{fig.queue-1}: 
 %
-\begin{enumerate}[start=0]
+\begin{itemize}
 %
 \item The initial state (box \code{0}) assumes pre-existing \code{running} and 
 \code{waiting} items.
 %
-\item Lines 10--11 assign the \code{waiting} subtree (mark~\MM(B)) to the 
-\code{running} field, releasing the old subtree (mark~\MM{(A)})).
+\item Lines 10--11 assign the \code{waiting} subtree (marked~\MM{B}) to the 
+\code{running} field, releasing the old subtree (\MM{A})).
 The \code{waiting} field is automatically set to \code{NIL}.
 %
-\item Lines 12--13 assign a new neutral \code{ITEM} (box \code{1}:~\MM(C)) to 
+\item Lines 12--13 assign a new neutral \code{ITEM} (box \code{1}:~\MM{C}) to 
 the \code{waiting} field, finishing the swapping operation.
 %
-\end{enumerate}
+\end{itemize}
 %
 After the swapping process, the \code{loop} restarts and traverses the new 
 \code{running} commands (lines 4--14).
@@ -1162,31 +1160,31 @@ The \code{every} loop (lines 2--18) reacts to each occurrence of
 \code{ENQUEUE}, creating and enqueuing the requested command, as illustrated in 
 Figure~\ref{fig.queue-2}: 
 %
-\begin{enumerate}[start=0]
+\begin{itemize}
 %
 \item The initial state (box~\code{0}) assumes a pre-existing neutral 
-\code{ITEM} in the root of the \code{waiting} field (mark~\MM{(D)}).
+\code{ITEM} in the root of the \code{waiting} field (\MM{D}).
 %
-\item Lines 4--11 assigns a new subtree to the \code{tmp} field (box~\code{1}) 
-with a new neutral \code{ITEM} (mark~\MM{(E)}, lines 5--6) linked to the set of 
-commands to \code{MOVE} the turtle (mark~\MM{(F)}, lines 7--11).
+\item Lines 4--11 assign a new subtree to the \code{tmp} field (box~\code{1}) 
+with a new neutral \code{ITEM} (\MM{E}, lines 5--6) linked to the set of 
+commands to \code{MOVE} the turtle (\MM{F}, lines 7--11).
 %
-\item Lines 15--16 move the already \code{waiting} commands (mark~\MM{(G)}) to 
-tail of the \code{tmp} node (mark~\MM{(H)}).
-The old location is automatically set to \code{NIL}.
+\item Lines 15--16 move the already \code{waiting} commands (\MM{G}) to 
+tail of the \code{tmp} node.
+The old location is automatically set to \code{NIL} (\MM{H}).
 Note that we skip the neutral \code{ITEM} nodes of both \code{waiting} and 
 \code{tmp} fields.
 This prevents the \code{waiting} root to become \code{NIL} and awake the 
 \code{ROOT} node (\emph{CODE-4}: 8) before we finish the enqueuing operation.
 %
-\item Line 17 moves the \code{tmp} subtree (mark~\code{E}) back to the 
+\item Line 17 moves the \code{tmp} subtree (\MM{E}) back to the 
 \code{waiting} field, releasing the abandoned neutral \code{ITEM}, and 
 notifying the \code{ROOT} node that the queue is no longer empty.
 The \code{tmp} field is automatically set to \code{NIL}.
 Note that the new \code{waiting} subtree preserves a neutral \code{ITEM} for 
 subsequent enqueue operations.
 %
-\end{enumerate}
+\end{itemize}
 
 \begin{figure}[t]
 \centering
@@ -1277,7 +1275,7 @@ manipulating these structures, as illustrated in Section \ref{sub.enqueuing}.
 This is done to support static memory management with bounded memory pools for
 allocation and deterministic deallocation. Still, we do not feel that the
 restrictions are prohibitively limiting. For instance, persistent data
-structures in functional languages \cite{TODO} operate under tighter design constraints.
+structures in functional languages \cite{okasaki.purely} operate under tighter design constraints.
 
 Possibilities for future work are the introduction of type arguments for \code{data},
 and investigating possibilities for relaxing \CEU pointer and
