@@ -468,12 +468,13 @@ Calculating the \emph{sum} of a list.
 }
 \end{figure}
 
-\CEU introduces a structured mechanism to traverse recursive data types.
-The \code{traverse} construct integrates with the synchronous execution model 
-of \CEU and supports nested control compositions, such as \code{await} and all 
-\code{par} variations.
+\CEU introduces the \code{traverse} structured mechanism for traversing 
+recursive data types incrementally.
+%The \code{traverse} construct integrates with the synchronous execution model 
+%of \CEU and supports nested control compositions, such as \code{await} and all 
+%\code{par} variations.
 %It also preserves explicit lexical scopes with static memory management.
-
+%
 %We begin by showing the flavor of the construct through an example.
 The code in Figure~\ref{lst.list.sum} creates a list (line 1) and traverses it 
 to calculate the sum of elements (lines 3--11).
@@ -487,11 +488,11 @@ The operator \code{`:'}, as in \code{e:NIL}, is equivalent to C's \code{`->'}.
 }
 has \code{sum=0} (lines 5--6).
 A \code{CONS} list needs to calculate the \code{sum} of its tail recursively, 
-invoking \code{traverse} again, which will create a nested instance of the 
-enclosing \code{traverse} block (lines 4--11), now with \code{e} pointing to 
-\code{e:CONS.tail} (line 8).
-Only after its complete subtree is traversed recursively that it adds its 
-\code{head} and returns (line 9).
+invoking \code{traverse} again (line 8), which will create a nested instance of 
+the enclosing \code{traverse} block (lines 4--11), now with \code{e} pointing 
+to \code{e:CONS.tail}.
+Only after the complete recursive traversal of its subtree that the \code{CONS} 
+clause adds its \code{head} and returns (line 9).
 
 \begin{figure*}[t]
 \begin{minipage}[t]{0.48\linewidth}
@@ -585,10 +586,10 @@ When used without event control mechanisms, as in this simple example, a
 %
 However, \code{traverse} complies with the event system and memory management 
 discipline of \CEU and is an abstraction defined in terms of a more fundamental 
-concept~\cite{ceu.mod15}:
-\emph{organisms}, which are objects with concurrent trails of execution (akin 
-to Simula~\cite{simula}); and orthogonal abortion, which handles cancellation 
-of trails maintaining memory consistency.
+concept, \emph{organisms}~\cite{ceu.mod15}, which are objects with concurrent 
+trails of execution (akin to Simula~\cite{simula}).
+%; and orthogonal abortion, which handles cancellation of trails maintaining 
+%memory consistency.
 %
 Figure~\ref{lst.list.sum.react} depicts the expansion of the \code{traverse} 
 construct.
@@ -601,16 +602,16 @@ Now, for each recursive iteration, we print the current \code{head} (line 9)
 and \code{await} 1 second (line 10) before traversing the \code{tail} (line 
 11).
 %
-Note that the last iteration of \code{traverse} will wait for one second before 
-printing ``\texttt{30}'', with all previous iterations blocked and
-retaining their full state of execution.
-Furthermore, this code can be part of a larger program with other trails in 
-parallel, all of which remain reactive during the incremental traversal.
+Note that while nested iterations of \code{traverse} await 1 second, all 
+previous iterations are blocked, retaining their full state of execution.
+Furthermore, the example could be part of a larger program with other trails in 
+parallel, all of which would remain reactive during the incremental traversal.
 
 \CEU enforces at compile time that all accesses to a pointer that cross 
-\code{await} statements are protected with an enclosing \code{watching} block, 
-which aborts its nested block if the referred object is released from 
-memory~\cite{ceu.mod15}.
+\code{await} statements are protected with an enclosing \code{watching} block.
+%
+The \code{watching} automatically aborts its nested block when the referred 
+object is released from memory~\cite{ceu.mod15}.
 %
 This ensures that if concurrent side effects affect the pointed object, no code 
 uses the stale pointer, because the whole block is aborted.
@@ -624,10 +625,10 @@ the awaiting period (line 10), we simply ignore the whole subtree and return 0
 \code{traverse} construct.
 %
 Because it contains concurrency constructs (i.e., \code{await} and 
-\code{watching}), the body of the \code{traverse} (\emph{CODE-1}: 5--15 ) must 
-be abstracted in an organism of the \code{Frame} class (\emph{CODE-2}: 3--26), 
-which is analogous to a ``stack frame'' of standard programming languages with 
-subroutines.
+\code{watching}), the body of the \code{traverse} (\emph{CODE-1}: 5--15) is 
+abstracted in an organism of the \code{Frame} class (\emph{CODE-2}: 3--26), 
+which is analogous ``stack frames'' of subroutines in standard programming 
+languages.
 Likewise, the \code{pool} of frames (\emph{CODE-2}: 28) is analogous to a 
 runtime ``call stack''.
 We limit the number of stack frames to match the maximum number of elements to 
@@ -653,7 +654,7 @@ receives the static pool of frames, the running organism as the parent (i.e.,
 The \code{Frame} constructor for recursive calls (\emph{CODE-2}: 15--18) 
 receives the same pool of frames, the current stack frame as parent, and the 
 original subtree in the recursive invocation (\emph{CODE-1}: 11).
-
+%
 The \code{Frame} body (\emph{CODE-1}: 8--25) always aborts with the
 \code{parent} frame termination.
 Given that a \code{traverse} body can possibly execute (and terminate) trails 
@@ -670,16 +671,17 @@ As the expansion illustrates, three aspects make \code{traverse} fundamentally
 different from recursive function calls:
 %
 \begin{enumerate}
-\item Each \code{traverse} invocation spawns a new organism which can execute 
-concurrently with other parts of the application.
-Also, each organism itself can invoke multiple concurrent trails, adding more 
-complexity in comparison to standard functions~\cite{ceu.mod15}.
+\item Each \code{traverse} invocation spawns a new organism for the frame which 
+can execute concurrently with other parts of the application.
+Also, each frame itself can contain multiple concurrent trails (to be 
+illustrated in Section~\ref{sec.apps}), adding more complexity in comparison to 
+standard functions~\cite{ceu.mod15}.
 %
-\item A \code{traverse} is attached to a specific lexically-scoped memory pool 
-for a data structure.
+\item A \code{traverse} is attached to a lexically-scoped memory pool for 
+specific a data structure.
 Therefore, we can infer at compile time the maximum traversal depth if the data 
 is bounded (e.g., \code{List[3] lst}).
-Enforcing execution limits is an important requirement for constrained and 
+Enforcing bounded limits is an important requirement for constrained and 
 real-time embedded systems, which is the original application domain of 
 \CEU~\cite{ceu.sensys13}.
 In addition, given that the pool of frames is expanded in the same lexical 
@@ -693,8 +695,8 @@ execution modifies the data structure being traversed.
 \end{enumerate}
 
 We believe that the \code{traverse} construct, more than a simple convenience, 
-considerably reduces the complexity of programs, handling a complex hierarchy 
-of behaviors associated with recursive data types automatically.
+considerably reduces the complexity of programs, handling automatically 
+hierarchy of behaviors associated with recursive data types.
 
 %TODO: expansion is simplified:
 % option type, mem fail, passing arguments, outer closure
@@ -743,33 +745,32 @@ Calculating the \emph{sum} of a list.
 \section{Applications}
 \label{sec.apps}
 
-In this section, we present three applications that explore the reactive and 
-incremental nature of the \code{traverse} construct.
-We start with \emph{Behavior Trees} used in video games for AI 
-modeling~\cite{isla2005,hecker2009my}.
-Then, we show a \emph{Logo Turtle}~\cite{papert.logo} that can execute commands 
-in parallel (e.g., \code{move} and \code{rotate}).
+In this section, we present three applications that explore the reactive nature 
+of the \code{traverse} construct.
+We start with \emph{Behavior Trees} used in video games for AI modeling.
+Then, we show a \emph{Logo Turtle} that can execute commands in parallel (e.g., 
+\code{move} and \code{rotate}).
 Finally, we extend the Turtle example with a dynamic and concurrent queue of 
 commands that can affect the running program.
 
 \subsection{Behavior Trees}
 \label{subsec.bt}
 
-\emph{Behavior Trees} are a family of DSLs used for game AI.
-The term is loose, because different games use different languages.
-For our purposes it indicates an interpreted domain-specific language
-for concurrent creature behavior that includes sequence (\code{SEQ}) and 
-selection (\code{SEL}) combinators.
-
+\emph{Behavior Trees} are a family of DSLs used for game 
+AI~\cite{isla2005,hecker2009my}.
+The DSLs vary between languages, but they usually include sequence (\code{SEQ}) 
+and selection (\code{SEL}) combinators to model concurrent creature behavior.
+%
 The \code{SEQ} can be understood as short-circuit evaluation of an `and',
 while the \code{SEL} corresponds to an `or'.
+%
 This skeleton is extensible with leaves to test properties, set properties, 
 perform animations and sounds, etc., and is an effective alternative to finite 
 state machines for authoring game AI.
-%
-However, because the evaluation of each tree extends across many frames, 
-writing behavior tree nodes and leaves in other languages is an exercise in 
-stack-ripped event-driven programming~\cite{krohn2007events}.
+
+However, because the evaluation of trees extend across multiple game frames, 
+specifying node behaviors in generic languages via event-driven programming 
+becomes a challenge due to ``stack ripping''~\cite{krohn2007events}.
 %
 %and there are sufficiently many creatures that it is infeasible for each 
 %creature to have its own thread,
@@ -781,17 +782,16 @@ Figure~\ref{lst.bt1} describes a generic grammar for behavior trees (lines
 1--9).
 The \code{SEQ} and \code{SEL} tags (lines 4 and 6) are recursive and behave as 
 described above.
-The \code{LEAF} tag (line 8) receives a reference to a \code{Leaf} data type, 
-which is defined externally, carrying opaque values that are specific to the 
-application domain.
+The \code{LEAF} tag (line 8) receives a reference to an opaque \code{Leaf} data 
+type, which is defined externally and is specific to the application domain.
 %
 The interpreter for trees is abstracted in a class definition (lines 11--37) 
-and receives the tree to traverse as the argument (line 12).
+and receives the tree to traverse as the single argument (line 12).
 The body acquires the return status of the traversal (line 14) and returns it 
-as its final result (lines 36).
+as the final result (lines 36).
 %
-The traversal takes into account the semantics of the composite nodes as 
-described before.
+%The traversal takes into account the semantics of the composite nodes as 
+%described before.
 %
 For the \code{SEQ} tag (lines 16--22), we traverse the \code{first} subtree 
 (line 17) and only if it succeeds, we traverse the \code{second} subtree (line 
@@ -801,14 +801,16 @@ For the \code{SEL} tag (lines 23--29), we traverse the \code{first} subtree
 (line 24) and only if it fails, we traverse the \code{second} subtree (line 
 28).
 %
-Finally, the \code{LEAF} tag does the real work and is domain specific.
+Finally, the \code{LEAF} tag (lines 30--33) delegates the behavior to another 
+class, which does real work and is domain specific.
 The \code{do Class} syntax (line 31--32) creates an anonymous and lexically 
-scoped organism of the referred class and awaits its termination.
-The organism itself can contain any valid code in \CEU and execute for an 
-arbitrary amount of time~\cite{ceu.mod15}.
-The tree traversal hangs and waits for its return status (line 33), which is 
-the expected behavior given that both \code{SEQ} and \code{SEL} nodes execute 
-their children in sequence.
+scoped organism and awaits its termination to return the final status (line 
+33).
+The organism itself can contain any valid code in \CEU (including parallel 
+compositions) and executes for an arbitrary amount of time~\cite{ceu.mod15}.
+%The tree traversal hangs and waits for its return status (line 33), which is 
+%the expected behavior given that both \code{SEQ} and \code{SEL} nodes execute 
+%their children in sequence.
 
 % rebls-15/bts-ceu/btree-1.ceu
 \begin{figure}[t]
@@ -852,8 +854,8 @@ do
 end
 \end{lstlisting}
 \caption{
-A simple generic grammar of behavior trees with \emph{sequence} and 
-\emph{selector} composite nodes with a straightforward interpreter.
+A simple grammar of behavior trees with \code{SEQ} and \code{SEL} nodes and a 
+straightforward interpreter.
 \label{lst.bt1}
 }
 \end{figure}
@@ -869,29 +871,29 @@ actions~\cite{hoffmann2005contingent}.
 %or fail, as well as actuator leaves that move blocks and unconditionally 
 %succeed.
 %
-Here, we want to achieve an \code{ABC} stack and assume we pinned down the 
-situation to two possibilities illustrated in the figure.
+We want to achieve an \code{ABC} stack and assume two possibilities, as 
+illustrated in the figure.
 %
 We use a \code{SEL} node (line 3) with a sensor leaf (line 4) to decide which 
 strategy is appropriate:
 If \code{C} is not sensed on top of the table, we first move it to the table 
 (line 5).
-Then, we stack \code{B} on top of \code{A}, and \code{C} on top of \code{B} 
-(lines 6--7).
-
+Then, in both situations, we stack \code{B} on top of \code{A}, and \code{C} on 
+top of \code{B} (lines 6--7).
+%
 %If the sensor does not succeed, we move to the second sequence of
 %the selection (lines 4-6): we move C from B to the table
 %and B from the table to A. Finally, completing the outer sequence
 %that applies to both cases, we move C from the table to B (line 7),
 %thus achieving an ABC stack.
-
+%
 The example illustrates how the behavior tree can exhibit goal-directed 
 behavior specified directly by domain designers.
-The \code{traverse} feature allows behavior authored at runtime, which is one 
-of the crucial features of behavior trees.
+%The \code{traverse} feature allows behavior authored at runtime, which is one 
+%of the crucial features of behavior trees.
 %
-Alternatively, \code{traverse} allows \CEU to consume at runtime the output of 
-CPU-intensive algorithms such as planners.
+%Alternatively, \code{traverse} allows \CEU to consume at runtime the output of 
+%CPU-intensive algorithms such as planners.
 
 \begin{figure}[t]
 \begin{lstlisting}[numbers=left,xleftmargin=3em]
@@ -912,6 +914,7 @@ pool BTree[] btree =
 \end{figure}
 
 \subsection{Logo Turtle}
+\label{sec.apps.turtle}
 
 Our second example is an interpreter for a simple variant of the classic Logo
 turtle-graphics interpreter \cite{papert.logo}.
@@ -1336,7 +1339,12 @@ Possibilities for future work are the introduction of type arguments for \code{d
 and investigating possibilities for relaxing \CEU pointer and
 reference semantics while maintaining their safety properties on recursive data.
 
+%\newpage % TTT
+\balance
+%{\footnotesize
 \bibliographystyle{abbrv}
 \bibliography{rebls-15}
+%}
+
 \balancecolumns
 \end{document}
