@@ -1,6 +1,14 @@
 %\documentclass{acm_proc_article-sp}
 \documentclass{sig-alternate}
 
+\setlength{\paperheight}{11in}
+\setlength{\paperwidth}{8.5in}
+\usepackage[
+  pass,% keep layout unchanged 
+  % showframe,% show the layout
+]{geometry}
+\usepackage{balance}
+
 \usepackage{xspace}
 \newcommand{\CEU}{\textsc{C\'{e}u}\xspace}
 \newcommand{\code}[1] {{\small{\texttt{#1}}}}
@@ -60,6 +68,49 @@ escapeinside={||},
     %aboveskip={1.5\baselineskip},
 }
 
+\setlength\paperheight {11in}
+\setlength\paperwidth {8.5in}
+
+% No space between bibliography items:
+\let\oldthebibliography=\thebibliography
+  \let\endoldthebibliography=\endthebibliography
+  \renewenvironment{thebibliography}[1]{%
+    \begin{oldthebibliography}{#1}%
+      \setlength{\parskip}{0ex}%
+      \setlength{\itemsep}{0ex}%
+  }%
+  {%
+    \end{oldthebibliography}%
+  }
+\setlength{\parindent}{5mm}
+
+\newcommand{\compresslist}{
+	\setlength{\itemsep}{1pt}
+	\setlength{\parskip}{0pt}
+	\setlength{\parsep}{0pt}
+}
+
+\newenvironment{itemize*}%
+  {\begin{itemize}%
+    \setlength{\itemsep}{0pt}%
+    \setlength{\parskip}{0pt}}%
+  {\end{itemize}}
+\usepackage{enumitem}
+\setlist{nolistsep}
+
+%\setlength{\belowcaptionskip}{-100pt}
+%\setlength{\textfloatsep}{10pt plus 1.0pt minus 2.0pt}
+%\setlength{\floatsep}{12.0pt plus 2.0pt minus 2.0pt}
+%\setlength{\textfloatsep}{20.0pt plus 2.0pt minus 4.0pt}
+%\setlength{\intextsep}{12.0pt plus 2.0pt minus 2.0pt}
+%\setlength{\dbltextfloatsep}{20.0pt plus 2.0pt minus 4.0pt}
+%\setlength{\dblfloatsep}{12.0pt plus 2.0pt minus 2.0pt}
+%\setlength{\abovecaptionskip}{10.0pt}
+%\setlength{\belowcaptionskip}{0.0pt}
+%\setlength{\textfloatsep}{\baselineskip plus 0.2\baselineskip minus 
+%0.2\baselineskip}
+\setlength{\textfloatsep}{5pt}
+
 \begin{document}
 
 \title{Reactive Traversal of Recursive Data Types}
@@ -92,9 +143,8 @@ frames alive.
 of its concurrency functionality and safety properties, such as parallel 
 compositions with orthogonal abortion, static memory management, and bounded 
 reaction time and memory usage.
-We discuss three applications in the domains of incremental computation and 
-control-oriented DSLs that contain reactive and recursive behavior at the same 
-time.
+We discuss three applications in the domain control-oriented DSLs that contain 
+reactive and recursive behavior at the same time.
 
 \begin{comment}
 MIX OF:
@@ -170,34 +220,32 @@ constraints.
 language in which the lines of execution, known as \emph{trails}, react all 
 together continuously and in synchronous steps to external stimuli.
 %Being an imperative language, \CEU features mutable data.
-At the same time, it promotes mutation of data structures, static memory 
-management through lexically-scoped memory pools, and safe pointer 
+\CEU supports mutable data structures with static memory and safe pointer 
 manipulation.
 % even under concurrent trails with orthogonal abortion~\cite{ceu.mod15}.
 These features are incompatible with garbage-collected immutable data 
-structures, but also preclude the availability of general records with 
-arbitrary pointers such as \emph{structs} in C.
+structures, as well as with general records with arbitrary pointers such as 
+\emph{structs} in C.
 %Recursive data types in \CEU must, therefore, respect the language's
 %memory management guarantees and their use must cope with the synchronous
 %concurrency model.
 
 The solution to this problem is twofold, with data and control aspects.
-For data management, we introduce a restricted form of data types allowing 
-mutation and static memory management.
-For handling reactive control, we propose a structured mechanism that can 
-traverse recursive data types safely and incrementally, in successive reactions 
-to input events.
+For data management, we introduce a restricted form of recursive data types 
+that supports trees (but not more general graphs).
+To manage reactive behavior, we propose a structured mechanism that can 
+traverse data types safely and incrementally, in successive reactions to input 
+events.
 %\code{traverse} is an iterator-like anonymous block that can be invoked 
 %recursively and suspended at any point, retaining the full state and stack 
 %frames alive.
-
-After we present the design of these constructs in Section~\ref{sec.ceu}, we 
-discuss three applications in the domains of incremental computation and 
-control-oriented DSLs in Section~\ref{sec.apps}.
-The applications contain reactive and recursive behavior at the same time and 
-showcase the expressiveness of the proposed constructs.
-Then, we discuss some related work in Section~\ref{sec.related} and make 
-closing remarks in Section~\ref{sec.conclusion}.
+%
+After we present the design of these constructs, we discuss three applications 
+in the domain control-oriented DSLs.
+%The applications contain reactive and recursive behavior at the same time and 
+%showcase the expressiveness of the proposed constructs.
+%Then, we discuss some related work in Section~\ref{sec.related} and make 
+%closing remarks in Section~\ref{sec.conclusion}.
 
 \section{C\'eu constructs}
 \label{sec.ceu}
@@ -224,29 +272,33 @@ end
 }
 \end{figure}
 
-In this section, we present the constructs added to \CEU to support recursive
-data types with reactive traversal.
+%In this section, we present the constructs added to \CEU to support recursive
+%data types with reactive traversal.
 
-The introductory example in Figure~\ref{lst.intro} gives a general flavor of 
-the language.
+The introductory example%
+\footnote{A screencast of all examples in the paper is available at 
+\url{https://vimeo.com/135297440}.}
+in Figure~\ref{lst.intro} gives a general flavor of \CEU.
 It first defines an input event \code{RESET} (line 1), a shared variable 
 \code{v} (line 2), and starts two trails with the \code{par} construct (lines 
 3-14): the first (lines 4-8) increments variable \code{v} on every second and 
 prints its value on screen; the second (lines 10-13) resets \code{v} on every 
 external request to \code{RESET}.
-\CEU is tightly integrated with \emph{C} and can access libraries of the 
-underlying platform directly by prefixing symbols with an underscore (e.g., 
-\code{\_printf(<...>)}, in line 7).
+%\CEU is tightly integrated with \emph{C} and can access libraries of the 
+%underlying platform directly by prefixing symbols with an underscore (e.g., 
+%\code{\_printf(<...>)}, in line 7).
 
 In the synchronous model of \CEU, a program reacts to an occurring event 
 completely before handling the next.
 %
 A reaction represents a logical instant in which all trails awaiting the 
-occurring event awake and execute, one after the other, until they await again 
-or terminate.
+occurring event awake and execute \emph{atomically}, one after the other, until 
+they await again or terminate.
 %
-During a reaction, the environment is invariant and does not interrupt the 
-running trails.
+As a consequence, all consecutive operations to shared variable \code{v} in 
+Figure~\ref{lst.intro} are atomic because reactions to events \code{1s} and 
+\code{RESET} can never interrupt each other.
+%
 If multiple trails react to the same event, the scheduler employs lexical 
 order, i.e., the trail that appears first in the source code executes first.
 %
