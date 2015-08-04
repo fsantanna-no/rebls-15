@@ -904,22 +904,9 @@ pool BTree[] btree =
 }
 \end{figure}
 
-\subsection{Logo Turtle}
-\label{sec.apps.turtle}
-
-Our second example is an interpreter for a simple variant of the classic Logo
-turtle-graphics interpreter \cite{papert.logo}.
-The aim of this example is to demonstrate parallel traversal.
-In our variant, we can instruct the turtle to move and rotate in parallel, 
-tracing curves.
-
-% We declare a data type which defines our abstract syntax, with each tag 
-% representing one of the supported Logo commands. A tree of nodes represents a 
-% program, and the interpreter is implemented as a traversal of this tree.
-
 % rebls-15/turtle/turtle-2.ceu
 % rebls-15/turtle/turtle-7.ceu
-\begin{figure}[h!]
+\begin{figure}[t!]
 \begin{lstlisting}[numbers=left,xleftmargin=3em]
 data Command with
    tag NOTHING ();
@@ -939,7 +926,7 @@ end
 
 class CommandInterpreter with
    var  Turtle&    turtle;
-   pool Command[]* cmds;
+   pool Command[]& cmds;
 do
    traverse cmd in cmds do
       watching cmd do
@@ -986,6 +973,76 @@ do CommandInterpreter(turtle, cmds);
 \label{lst.turtle}
 }
 \end{figure}
+
+\subsection{Logo Turtle}
+\label{sec.apps.turtle}
+
+Our second example is an interpreter for a simple variant of the classic Logo
+turtle-graphics interpreter \cite{papert.logo}.
+The aim of this example is to demonstrate parallel traversal.
+In our variant, we can instruct the turtle to move and rotate in parallel, 
+tracing curves.
+
+% We declare a data type which defines our abstract syntax, with each tag 
+% representing one of the supported Logo commands. A tree of nodes represents a 
+% program, and the interpreter is implemented as a traversal of this tree.
+
+Figure~\ref{lst.turtle} presents the data type \code{Command} (l. 1--15), which 
+specifies the abstract syntax of our Logo variant.
+As in traditional Logo, commands can execute in sequence through the \code{SEQ} 
+tag (l. 4), and can also repeat a number of times through the \code{REPEAT} 
+tag (l. 6).
+%
+Our variant extends the \code{MOVE} and \code{ROTATE} commands to take as 
+arguments the speed at which they should affect the turtle (l. 8,10).
+For example, a \code{Command.MOVE(300)} node directs the turtle to move at the 
+speed of 300 pixels per second, indefinitely.
+%
+Therefore, the only way to make the turtle stop moving or rotating is through 
+two \CEU-like extensions added to our Logo variant:
+The \code{AWAIT} tag (l. 12) simply awaits a given number of milliseconds.
+The \code{PAROR} tag (l. 14), modeled after the \CEU construct \code{par/or},
+launches two commands in parallel, and aborts both of them as soon as one of
+them finishes.
+%
+As an example, the program in lines 54--60 makes the turtle to move along a 
+semicircle.
+
+The interpreter for the commands is also abstracted in a class definition 
+(l. 17--52).
+%
+It holds as attributes a reference to a \code{Turtle} object (which implements 
+the UI) and a reference to the commands (l. 18--19).
+The execution body of the class uses the \code{traverse} construct to interpret 
+the commands (l. 21--51).
+%
+The \code{SEQ} tag (l. 23--25) traverses each of its subcommands in sequence 
+(in contrast with \code{BTreeInterpreter}, it does not handle failures).
+%
+The \code{REPEAT} tag (l. 27--30) traverses its subcommand the specified number 
+of times.
+%
+The \code{MOVE} and \code{ROTATE} tags (l. 32--38) rely on 
+predefined classes of organisms to update the position and orientation of the 
+\code{turtle} (received in line 18).
+%
+The \code{AWAIT} tag (l. 40--41) simply causes the current iteration of the 
+\code{traverse} to await the given amount of time.
+%
+Finally, the \code{PAROR} tag (l. 43--48) uses the \code{par/or} construct
+to traverse both subcommands at the same time. As per the semantics of
+\code{par/or}, as soon as one of the subtrees terminate its execution,
+the other one is aborted.
+
+Note that the entire interpreter block is surrounded by a \code{watching}
+construct (l. 22).
+As discussed in Section~\ref{sec.traverse}, the \CEU compiler enforces the 
+presence of the guard, due to the use of the \code{cmd} pointer in code that 
+spans multiple reactions. This ensures clean abortion in case the AST is 
+mutated by code running in other trails.
+
+\subsection{Enqueuing Commands}
+\label{sub.enqueuing}
 
 \begin{figure*}[t]
 \begin{minipage}[t]{0.22\linewidth}
@@ -1073,78 +1130,20 @@ end
 }
 \end{figure*}
 
-Figure~\ref{lst.turtle} presents the data type \code{Command} (l. 1--15), 
-which specifies the abstract syntax of our Logo variant.
-As in traditional Logo, commands can execute in sequence through the \code{SEQ} 
-tag (l. 4), and can also repeat a number of times through the \code{REPEAT} 
-tag (l. 6).
-%
-Our variant extends the \code{MOVE} and \code{ROTATE} commands to take as 
-arguments the speed at which they should affect the turtle (l. 8,12).
-For example, a \code{Command.MOVE(300)} node directs the turtle to move at the 
-speed of 300 pixels per second, indefinitely.
-%
-Therefore, the only way to make the turtle stop moving or rotating is through 
-two \CEU-like extensions added to our Logo variant:
-The \code{AWAIT} tag (l. 12) simply awaits a given number of milliseconds.
-The \code{PAROR} tag (l. 14), modeled after the \CEU construct \code{par/or},
-launches two commands in parallel, and aborts both of them as soon as one of
-them finishes.
-%
-As an example, the program (l. 54--60) makes the turtle to move along a 
-semicircle.
-
-The interpreter for the commands is also abstracted in a class definition 
-(l. 17--52).
-%
-It holds as attributes a reference to a \code{Turtle} object (which implements 
-the UI) and a reference to the commands (l. 18--19).
-The execution body of the class uses the \code{traverse} construct to interpret 
-the commands (l. 21--51).
-%
-The \code{SEQ} tag (l. 23--25) traverses each of its child commands in 
-sequence (in contrast with the \code{BTreeInterpreter}, it does not handle 
-failures).
-%
-The \code{REPEAT} tag (l. 27--30) traverses its command the specified number 
-of times.
-%
-The \code{MOVE} and \code{ROTATE} tags (l. 32--38) rely on 
-predefined classes of organisms to update the position and orientation of the 
-\code{turtle} received as argument in the constructor (l. 18).
-%
-The \code{AWAIT} tag (l. 40--41) simply causes the current trail of 
-execution of the interpreter to await the given amount of time.
-%
-Finally, the \code{PAROR} tag (l. 43--48) uses the \code{par/or} construct
-to traverse both subcommands at the same time. As per the semantics of
-\code{par/or}, as soon as one of the subtrees terminate its execution,
-the other one is aborted.
-
-Note that the entire interpreter block is surrounded by a \code{watching}
-construct (l. 22).
-As discussed in Section~\ref{sec.traverse}, the \CEU compiler enforces the 
-presence of a guard, due to the use of the \code{cmd} pointer in code that 
-spans multiple reactions. This ensures clean abortion in case the AST is 
-mutated by code running in other trails.
-
-\subsection{Enqueuing Commands}
-\label{sub.enqueuing}
-
 All examples so far create a fixed tree that does not vary during traversal.
 %
 Figure~\ref{lst.turtle.queue} extends the Turtle application with a queue of 
-pending commands to execute after the running commands terminate.
+pending commands to execute.
 
 We define a new \code{Queue} data type in \emph{CODE-3}:
 The \code{ROOT} tag (l. 4--6) has a \code{runnning} subtree of commands, a 
-\code{waiting} queue of pending commands to execute afterwards, and a 
-\code{tmp} node to allow in-place manipulation of the tree (to be discussed 
-further).
+\code{waiting} queue of pending commands, and a \code{tmp} node to allow 
+in-place manipulation of the tree (to be discussed further).
 %
 The \code{ITEM} tag (l. 8--9) represents a queue item and contains a 
-\code{cmds} subtree with the actual commands to execute, and a \code{prv} queue 
-item pointing to an older item (i.e., the queue is in reverse order).
+\code{cmds} subtree with the actual commands to execute (as described in 
+Figure~\ref{lst.turtle}: 1--15), and a \code{prv} queue item pointing to an 
+older item (i.e., the queue is in reverse order).
 %
 As Figure~\ref{fig.queue-1} illustrates in box \code{0}, a queue instance has a 
 single \code{ROOT} node with linked lists of \code{ITEM} nodes in the 
@@ -1180,13 +1179,14 @@ The swapping process (l. 10--13) is illustrated in Figure~\ref{fig.queue-1}:
 \code{running} field, releasing the old subtree (\MM{A})).
 The \code{waiting} field is automatically set to \code{NIL}.
 %
-\item Lines 12--13 assign a new neutral \code{ITEM} (box \code{1}:~\MM{C}) to 
-the \code{waiting} field, finishing the swapping operation.
+\item Lines 12--13 assign a new neutral \code{ITEM} (box \code{1}:~\MM{C}, with 
+a dummy command \code{NOTHING}) to the \code{waiting} field, completing the 
+swapping operation.
 %
 \end{itemize}
 %
 After the swapping process, the \code{loop} restarts and traverses the new 
-\code{running} commands (l. 4--14).
+\code{running} commands (l. 4).
 %
 The \code{ITEM} traversal (l. 15--18) is straightforward:
 first we traverse the previous item (l. 16), and then we reuse the 
@@ -1199,11 +1199,11 @@ any time.
 Note that the compiler enforces the use of the \code{watching} construct (l. 
 2) which encloses the running turtle interpreter (l. 17--18).
 Hence, if its enclosing \code{ITEM} (l. 15) is mutated, the \code{watching} 
-will awake and abort the interpreter which runs inside its lexical scope.
+will awake and abort the interpreter running inside the lexical scope.
 
 The enqueuing of new commands is depicted in \emph{CODE-5}.
-The external input event \code{ENQUEUE} (l. 1) accepts \emph{move} and 
-\emph{rotate} commands with an associated velocity and time (i.e., 
+The external input event \code{ENQUEUE} (l. 1) accepts \emph{``move''} and 
+\emph{``rotate''} strings with an associated velocity and time (i.e., 
 ``\code{char*,int,int}'' arguments).
 The \code{every} loop (l. 2--18) reacts to each occurrence of 
 \code{ENQUEUE}, creating and enqueuing the requested command, as illustrated in 
@@ -1218,17 +1218,17 @@ Figure~\ref{fig.queue-2}:
 with a new neutral \code{ITEM} (\MM{E}, l. 5--6) linked to the set of 
 commands to \code{MOVE} the turtle (\MM{F}, l. 7--11).
 %
-\item Lines 15--16 move the already \code{waiting} commands (\MM{G}) to 
-tail of the \code{tmp} node.
-The old location is automatically set to \code{NIL} (\MM{H}).
+\item Lines 15--16 move the already \code{waiting} commands (\MM{G}) to the 
+tail of \code{tmp}, in the place of \code{NIL} (\MM{H}).
+The old location is automatically set to \code{NIL}.
 Note that we skip the neutral \code{ITEM} nodes of both \code{waiting} and 
 \code{tmp} fields.
 This prevents the \code{waiting} root to become \code{NIL} and awake the 
 \code{ROOT} node (\emph{CODE-4}: 8) before we finish the enqueuing operation.
 %
-\item Line 17 moves the \code{tmp} subtree (\MM{E}) back to the 
-\code{waiting} field, releasing the abandoned neutral \code{ITEM}, and 
-notifying the \code{ROOT} node that the queue is no longer empty.
+\item Line 17 moves the \code{tmp} subtree (\MM{E}) back to the \code{waiting} 
+field, releasing the abandoned neutral \code{ITEM} (\MM{D}), and notifying the 
+\code{ROOT} node that the queue is no longer empty.
 The \code{tmp} field is automatically set to \code{NIL}.
 Note that the new \code{waiting} subtree preserves a neutral \code{ITEM} for 
 subsequent enqueue operations.
