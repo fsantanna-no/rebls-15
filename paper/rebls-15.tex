@@ -1296,26 +1296,28 @@ transparently.
 \label{sec.conclusion}
 
 We presented a new construct for traversing recursive data types
-incrementally, in the context of \CEU, an imperative reactive language with
-synchronous concurrency. The \code{traverse} construct encapsulates an idiom
-for performing recursive traversal by handling each step as a separate trail
-of execution. It allows parallel traversal using the language's concurrency
-features and maintains its safety properties.
+incrementally in the context of \CEU, an imperative reactive language with
+synchronous concurrency.
+The \code{traverse} construct encapsulates an idiom that handles each recursive 
+step in a separate organism (\CEU's abstraction mechanism), allowing concurrent 
+traversal %using the language's concurrency features
+while preserving the language's safety properties.
 
-This kind of traversal can be done in \CEU through the use of organisms
-(pooled objects which launch their own execution trails) and orthogonal
-abortion via the \code{watching} construct. Combining these features to
-traverse a recursive data structure correctly, however, is not straightforward.
-Recursing in a way such that parallel constructs can be composed requires each
-step of the recursion to be a new execution trail. Ensuring that the traversal
-will not execute on a stale subtree in case the structure is modified requires
-the nodes to be watched in order to perform abortions. Additionally, by
-presenting a control construct that is tied to a data structure, we can ensure
-bounded execution time, in line with the \CEU philosophy. By dealing with these
-concerns internally in the \code{traverse} statement, we make reactive
-traversal as easy to perform correctly as a recursive function call.
-
-%TODO: mention/review other examples
+%This kind of traversal can be done in \CEU through the use of organisms
+%(pooled objects which launch their own execution trails) and orthogonal
+%abortion via the \code{watching} construct.
+However, combining concurrency and safety while traversing a mutable recursive 
+data structure is not straightforward.
+For instance, composing parallel constructs during recursion requires that each 
+recursive step spawns new lines of execution.
+Also, ensuring that a traversal does not manipulate stale subtrees (originated 
+from mutations) requires watching nodes to abort it.
+Additionally, by presenting a control construct that is tied to a data 
+structure, we can ensure bounded execution time, in line with the philosophy of
+\CEU.
+By dealing with these concerns internally in the \code{traverse} statement, we 
+make reactive traversal as easy to perform correctly as a recursive function 
+call.
 
 \begin{comment}
 Difficult because of
@@ -1326,19 +1328,23 @@ Difficult because of
     -DONE- mutation of the data structure being traversed
 \end{comment}
 
-In the current implementation of recursive data types in \CEU, we impose
-restrictions to the kinds of structures that can be represented. The
-requirement of a tree hierarchy of ownership and move semantics for assignment
-of structure fields requires care in the design of algorithms
-manipulating these structures, as illustrated in Section \ref{sub.enqueuing}.
-This is done to support static memory management with bounded memory pools for
-allocation and deterministic deallocation. Still, we do not feel that the
-restrictions are prohibitively limiting. For instance, persistent data
-structures in functional languages \cite{okasaki.purely} operate under tighter design constraints.
+We impose restrictions to the kinds of structures that can be represented with 
+recursive data types in \CEU.
+On the one hand, the requirement of a tree hierarchy with move semantics for 
+assignments demands care in the design of algorithms manipulating these 
+structures.
+%, as illustrated in Section \ref{sub.enqueuing}.
+On the other hand, these restrictions enable static memory management with
+%bounded memory pools and
+deterministic deallocation.
+Still, we do not feel that the restrictions are prohibitively limiting.
+For instance, persistent data structures in functional languages 
+\cite{okasaki.purely} operate under tighter design constraints.
 
-Possibilities for future work are the introduction of type arguments for \code{data},
-and investigating possibilities for relaxing \CEU pointer and
-reference semantics while maintaining their safety properties on recursive data.
+Possibilities for future work are the introduction of type arguments for 
+\code{data} declarations, and investigating possibilities for relaxing \CEU 
+pointer and reference restrictions without sacrificing safety.
+% properties on recursive data.
 
 %\newpage % TTT
 \balance
