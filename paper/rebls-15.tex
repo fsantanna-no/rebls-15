@@ -488,7 +488,7 @@ clause adds its \code{head} and returns (l. 9).
 \begin{figure*}[t]
 \begin{minipage}[t]{0.48\linewidth}
 % rebls-15/list/list.ceu
-\begin{lstlisting}[numbers=left,xleftmargin=3.5em,title=CODE-1: Original code (with \code{traverse})]
+\begin{lstlisting}[numbers=left,xleftmargin=3.5em,title=\MM{C1} CODE-1: Original code (with \code{traverse})]
 pool List[3] lst = <...>;  // [10, 20, 30]
 
 var int sum =
@@ -532,7 +532,7 @@ _printf("sum = %d\n", sum);
 \end{minipage}
 %
 \begin{minipage}[t]{0.52\linewidth}
-\begin{lstlisting}[numbers=left,xleftmargin=3.5em,title=CODE-2: Expanded code (without \code{traverse})]
+\begin{lstlisting}[numbers=left,xleftmargin=3.5em,title=\MM{C2} CODE-2: Expanded code (without \code{traverse})]
 pool List[3] lst = <...>;  // [10, 20, 30]
 
 class Frame with
@@ -597,9 +597,9 @@ trails of execution (akin to Simula~\cite{simula}).
 Figure~\ref{lst.list.sum.react} depicts the expansion of the \code{traverse} 
 construct.
 
-The example in \emph{CODE-1} of Figure~\ref{lst.list.sum.react} extends the 
-body of the previous example in Figure~\ref{lst.list.sum} with reactive 
-behavior.
+The example in \emph{CODE-1} (\MM{C1}) of Figure~\ref{lst.list.sum.react} 
+extends the body of the previous example in Figure~\ref{lst.list.sum} with 
+reactive behavior.
 %
 Now, for each recursive iteration, we print the current \code{head} (l. 9) 
 and \code{await} 1 second (l. 10) before traversing the \code{tail} (l. 
@@ -624,41 +624,39 @@ With the protection of the \code{watching} block (l. 8--13), if the element
 the awaiting period (l. 10), we simply ignore the whole subtree and return 0 
 (l. 14).
 
-\emph{CODE-2} is the equivalent expansion of \emph{CODE-1} without the 
+\emph{CODE-2} (\MM{C2}) is the equivalent expansion of \MM{C1} without the 
 \code{traverse} construct.
 %
 Because it contains concurrency constructs (i.e., \code{await} and 
-\code{watching}), the body of the \code{traverse} (\emph{CODE-1}: 5--15) is 
-abstracted in an organism of the \code{Frame} class (\emph{CODE-2}: 3--29), 
-which is analogous ``stack frames'' of subroutines in standard programming 
-languages.
-Likewise, the \code{pool} of frames (\emph{CODE-2}: 32) is analogous to a 
-runtime ``call stack''.
+\code{watching}), the body of the \code{traverse} (\MM{C1}: 5--15) is 
+abstracted in an organism of the \code{Frame} class (\MM{C2}: 3--29), which is 
+analogous ``stack frames'' of subroutines in standard programming languages.
+Likewise, the \code{pool} of frames (\MM{C2}: 32) is analogous to a runtime 
+``call stack''.
 We limit the number of stack frames to match the maximum number of elements to 
-traverse (\emph{CODE-1}: 1 and \emph{CODE-2}: 1,32).
+traverse (\MM{C1}: 1 and \MM{C2}: 1,32).
 Therefore, to ``call'' the first \code{traverse} iteration, we dynamically 
-\code{spawn} a \code{Frame} instance into the \code{frames} pool 
-(\emph{CODE-2}: 34--35).
+\code{spawn} a \code{Frame} instance into the \code{frames} pool (\MM{C2}: 
+34--35).
 Then, we immediately \code{await} the termination of this \code{frame} 
-(\emph{CODE-2}: 36).
+(\MM{C2}: 36).
 Only after the \code{traverse} rolls back and clears the whole call stack
-that we acquire the \code{sum} and print it (\emph{CODE-2}: 36--39).
+that we acquire the \code{sum} and print it (\MM{C2}: 36--39).
 
-A \code{Frame} receives three arguments in the constructor (\emph{CODE-2}: 
-4--6):
+A \code{Frame} receives three arguments in the constructor (\MM{C2}: 4--6):
 a reference to a \code{pool} (to recursively \code{spawn} new frames);
 a pointer to its parent scope (to handle abortion);
 and a pointer to the subtree of the data type (to be able to manipulate it).
 %
-The \code{Frame} constructor for the first call (\emph{CODE-2}: 34--35) 
-receives the static pool of frames, a dummy \code{scope} organism attached to 
-the current scope, and the original tree to traverse (\emph{CODE-1}: 4).
+The \code{Frame} constructor for the first call (\MM{C2}: 34--35) receives the 
+static pool of frames, a dummy \code{scope} organism attached to the current 
+scope, and the original tree to traverse (\MM{C1}: 4).
 %
-The \code{Frame} constructor for recursive calls (\emph{CODE-2}: 17--20) 
-receives the same pool of frames, another dummy \code{scope} as parent, and the 
-original subtree in the recursive invocation (\emph{CODE-1}: 11).
+The \code{Frame} constructor for recursive calls (\MM{C2}: 17--20) receives the 
+same pool of frames, another dummy \code{scope} as parent, and the original 
+subtree in the recursive invocation (\MM{C1}: 11).
 %
-The \code{Frame} body (\emph{CODE-1}: 8--28) always aborts with the
+The \code{Frame} body (\MM{C1}: 8--28) always aborts with the
 \code{parent} scope termination.
 Given that a \code{traverse} body can possibly execute (and terminate) trails 
 running concurrently with the recursive invocation, the enclosing 
@@ -666,9 +664,8 @@ running concurrently with the recursive invocation, the enclosing
 (i.e., that there are no orphan frames executing).
 %
 The remaining code is almost the same in the original \code{traverse} body and 
-in the \code{Frame} body (\emph{CODE-1}: 5--15 and \emph{CODE-2}: 9--26), with 
-the exception of the recursive invocation explained above (\emph{CODE-2}: 
-17--20).
+in the \code{Frame} body (\MM{C1}: 5--15 and \MM{C2}: 9--26), with the 
+exception of the recursive invocation explained above (\MM{C2}: 17--20).
 
 As the expansion illustrates, three aspects make \code{traverse} fundamentally 
 different from recursive function calls:
