@@ -306,8 +306,8 @@ The \code{data} construct in \CEU provides a safer alternative to C's
 %
 Figure~\ref{lst.list} illustrates the recursive \code{List} data type,
 declared as a tagged union (l. 1--5).
-The first tag of recursive types has a special meaning and is the union 
-\emph{null} type.
+The first tag of recursive types has a special meaning as the union \emph{null} 
+type.
 In the example, the tag \code{NIL} also represents an empty list (l. 2).
 The second tag, \code{CONS} (l. 4), receives two arguments in the constructor: 
 an integer value for the \code{head} field and the rest of the list in the 
@@ -492,22 +492,28 @@ clause adds its \code{head} and returns (l. 9).
 pool List[3] lst = <...>;  // [10, 20, 30]
 
 var int sum =
-   traverse e in lst do
-      if e:NIL then
-         escape 0;
-      else
-         watching e do
-            _printf("me = %d\n", e:CONS.head);
-            await 1s;
-            var int sum_tail = traverse e:CONS.tail;
-            escape sum_tail + e:CONS.head;
-         end
-         escape 0;
+  traverse e in lst do
+    if e:NIL then
+      escape 0;
+    else
+      watching e do
+        _printf("me = %d\n", e:CONS.head);
+        await 1s;
+        var int sum_tail = traverse e:CONS.tail;
+        escape sum_tail + e:CONS.head;
       end
-   end;
+      escape 0;
+    end
+  end;
 
 _printf("sum = %d\n", sum);
-      // prints 60
+    // prints 60
+
+
+
+
+
+
 
 
 
@@ -530,34 +536,40 @@ _printf("sum = %d\n", sum);
 pool List[3] lst = <...>;  // [10, 20, 30]
 
 class Frame with
-   pool Frame[3]& frames;
-   var  Frame&    parent;
-   pool List[3]*  e;
+  pool Frame[3]& frames;
+  var  Scope*    parent;
+  pool List[3]*  e;
 do
-   watching this.parent do
-      if e:NIL then
-         escape 0;
-      else
-         watching e do
-            _printf("me = %d\n", e:CONS.head);
-            await 1s;
-            var Frame* frame = spawn Frame(this.frames,
-                                           this,
-                                           e:CONS.tail);
-                               in this.frames;
-            var int sum_tail = await *frame;
-            escape sum_tail + e:CONS.head;
-         end
-         escape 0;
+  watching *this.parent do
+    if e:NIL then
+      escape 0;
+    else
+      watching e do
+        _printf("me = %d\n", e:CONS.head);
+        await 1s;
+        do
+          var Scope scope;
+          var Frame* frame = spawn Frame(this.frames,
+                                         &scope,
+                                         e:CONS.tail);
+                             in this.frames;
+          var int sum_tail = await *frame;
+        end
+        escape sum_tail + e:CONS.head;
       end
-   end
-   escape 0;
+      escape 0;
+    end
+  end
+  escape 0;
 end
 
-pool Frame[3] frames;
-var Frame* frame = spawn Frame(frames, this, lst)
-                   in frames;
-var int sum = await *frame;
+do
+  pool Frame[3] frames;
+  var Scope scope;
+  var Frame* frame = spawn Frame(frames, &scope, lst)
+                     in frames;
+  var int sum = await *frame;
+end
 
 _printf("sum = %d\n", sum); // prints 60
 \end{lstlisting}
@@ -617,46 +629,46 @@ the awaiting period (l. 10), we simply ignore the whole subtree and return 0
 %
 Because it contains concurrency constructs (i.e., \code{await} and 
 \code{watching}), the body of the \code{traverse} (\emph{CODE-1}: 5--15) is 
-abstracted in an organism of the \code{Frame} class (\emph{CODE-2}: 3--26), 
+abstracted in an organism of the \code{Frame} class (\emph{CODE-2}: 3--29), 
 which is analogous ``stack frames'' of subroutines in standard programming 
 languages.
-Likewise, the \code{pool} of frames (\emph{CODE-2}: 28) is analogous to a 
+Likewise, the \code{pool} of frames (\emph{CODE-2}: 32) is analogous to a 
 runtime ``call stack''.
 We limit the number of stack frames to match the maximum number of elements to 
-traverse (\emph{CODE-1}: 1 and \emph{CODE-2}: 1,28).
+traverse (\emph{CODE-1}: 1 and \emph{CODE-2}: 1,32).
 Therefore, to ``call'' the first \code{traverse} iteration, we dynamically 
 \code{spawn} a \code{Frame} instance into the \code{frames} pool 
-(\emph{CODE-2}: 29--30).
+(\emph{CODE-2}: 34--35).
 Then, we immediately \code{await} the termination of this \code{frame} 
-(\emph{CODE-2}: 31).
+(\emph{CODE-2}: 36).
 Only after the \code{traverse} rolls back and clears the whole call stack
-that we acquire the \code{sum} and print it (\emph{CODE-2}: 31--34).
+that we acquire the \code{sum} and print it (\emph{CODE-2}: 36--39).
 
 A \code{Frame} receives three arguments in the constructor (\emph{CODE-2}: 
 4--6):
 a reference to a \code{pool} (to recursively \code{spawn} new frames);
-a reference to its parent frame (to handle abortion);
+a pointer to its parent scope (to handle abortion);
 and a pointer to the subtree of the data type (to be able to manipulate it).
 %
-The \code{Frame} constructor for the first call (\emph{CODE-2}: 29--30) 
-receives the static pool of frames, the running organism as the parent (i.e., 
-\code{this}), and the original tree to traverse (\emph{CODE-1}: 4).
+The \code{Frame} constructor for the first call (\emph{CODE-2}: 34--35) 
+receives the static pool of frames, a dummy \code{scope} organism attached to 
+the current scope, and the original tree to traverse (\emph{CODE-1}: 4).
 %
-The \code{Frame} constructor for recursive calls (\emph{CODE-2}: 15--18) 
-receives the same pool of frames, the current stack frame as parent, and the 
+The \code{Frame} constructor for recursive calls (\emph{CODE-2}: 17--20) 
+receives the same pool of frames, another dummy \code{scope} as parent, and the 
 original subtree in the recursive invocation (\emph{CODE-1}: 11).
 %
-The \code{Frame} body (\emph{CODE-1}: 8--25) always aborts with the
-\code{parent} frame termination.
+The \code{Frame} body (\emph{CODE-1}: 8--28) always aborts with the
+\code{parent} scope termination.
 Given that a \code{traverse} body can possibly execute (and terminate) trails 
 running concurrently with the recursive invocation, the enclosing 
 \code{watching} guarantees that the hierarchy in the call stack is preserved 
 (i.e., that there are no orphan frames executing).
 %
 The remaining code is almost the same in the original \code{traverse} body and 
-in the \code{Frame} body (\emph{CODE-1}: 5--15 and \emph{CODE-2}: 9--23), with 
+in the \code{Frame} body (\emph{CODE-1}: 5--15 and \emph{CODE-2}: 9--26), with 
 the exception of the recursive invocation explained above (\emph{CODE-2}: 
-15--18).
+17--20).
 
 As the expansion illustrates, three aspects make \code{traverse} fundamentally 
 different from recursive function calls:
@@ -1177,7 +1189,8 @@ The swapping process (l. 10--13) is illustrated in Figure~\ref{fig.queue-1}:
 %
 \item Lines 10--11 assign the \code{waiting} subtree (marked~\MM{B}) to the 
 \code{running} field, releasing the old subtree (\MM{A})).
-The \code{waiting} field is automatically set to \code{NIL}.
+Recursive data types \CEU have \emph{move semantics}, hence, the \code{waiting} 
+field is automatically set to the union null type (i.e., \code{NIL}).
 %
 \item Lines 12--13 assign a new neutral \code{ITEM} (box \code{1}:~\MM{C}, with 
 a dummy command \code{NOTHING}) to the \code{waiting} field, completing the 
