@@ -1145,7 +1145,7 @@ Figure~\ref{lst.turtle.queue} extends the Turtle application with a queue of
 pending commands to execute.
 
 We define a new \code{Queue} data type in \emph{CODE-3}:
-The \code{ROOT} tag (l. 4--6) has a \code{runnning} subtree of commands, a 
+The \code{ROOT} tag (l. 4--6) has a \code{running} subtree of commands, a 
 \code{waiting} queue of pending commands, and a \code{tmp} node to allow 
 in-place manipulation of the tree (to be discussed further).
 %
@@ -1279,7 +1279,7 @@ unusual, but parallels can be made to other languages. Generators trace their
 history back to CLU \cite{clu}, but their implementation was stackless and
 therefore did not support recursion. Icon \cite{icon} allows yielding through
 recursive functions, but delegation is explicit via the \code{suspend}
-kewyord. In \cite{icon}, Icon generators are used for implementing
+keyword. In \cite{icon}, Icon generators are used for implementing
 goal-directed programming via ``control backtracking'' similarly to selector
 nodes presented in Section \ref{subsec.bt}. Python originally
 introduced CLU-like stackless generators in version 2.2 \cite{pep255}, but
