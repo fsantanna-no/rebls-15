@@ -1267,24 +1267,23 @@ dealing with concurrent updates. While attempts are made to make to this
 process more transparent, performance concerns ultimately require the
 programmer to specify behavior explicitly. In \cite{ripdataflow}, one-way
 dataflow constraints are used to track updates in data structures in a
-reactive imperative language. Programmers need to annotate classes with
-constraint handler functions, which are then recursively called in the event
-of value updates. Another approach, focused on incremental computation, led to
-the development of self-adjusting computation \cite{selfadjusting}, using a
+reactive imperative language. In it, classes are annotated with
+constraint handler functions, recursively called in the event
+of value updates. Another approach, focused on incremental computation,
+is self-adjusting computation \cite{selfadjusting}, using a
 combination of dynamic dependency graphs and memoization. Keeping track of
 dependencies incurs significant overhead: traceable data types
-\cite{traceable} are one approach for mitigating this issue by letting the
+\cite{traceable} are one way to mitigating this issue, letting the
 programmer control the granularity of tracked data. In \CEU, tracking pointer
-updates is explicit (and enforced), and the move semantics for assignment of
-recursive data fields is designed to interact correctly with the traversal
-construct.
+updates is explicit (and enforced), and recursive data fields have
+move semantics designed for static memory management based on pools.
 
 Introducing a control structure specifically for traversing recursive data is
 unusual, but parallels can be made to other languages. Generators trace their
 history back to CLU \cite{clu}, but their implementation was stackless and
 therefore did not support recursion. Icon \cite{icon} allows yielding through
 recursive functions, but delegation is explicit via the \code{suspend}
-kewyord. In \cite{icon}, Icon generators are used for implementing
+keyword. In \cite{icon}, Icon generators are used for implementing
 goal-directed programming via ``control backtracking'' similarly to selector
 nodes presented in Section \ref{subsec.bt}. Python originally
 introduced CLU-like stackless generators in version 2.2 \cite{pep255}, but
@@ -1295,7 +1294,9 @@ generator functions have to be constructed by wrapping coroutine objects, but
 there is no need for explicit delegation in recursive calls. \CEU builds its
 higher-level \code{traverse} construct on organisms, which are also a primitive
 for cooperative multitasking, supporting recursion and concurrency
-transparently.
+transparently. This allows composing parallel traversals naturally; 
+in contrast, traversing using multiple coroutines in Lua or Python requires
+an explicit coroutine scheduler.
 
 \section{Conclusion}
 \label{sec.conclusion}
