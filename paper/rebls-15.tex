@@ -608,25 +608,26 @@ The example in \emph{CODE-1} of Figure~\ref{lst.list.sum.react} (\MM{C1})
 extends the body of the previous example in Figure~\ref{lst.list.sum} with 
 reactive behavior.
 %
-Now, for each recursive iteration, we print the current \code{head} (ln. 10) 
-and \code{await} 1 second (ln. 11) before traversing the \code{tail} (ln. 12).
+Now, for each recursive iteration, we print the current \code{head} 
+and \code{await} 1 second before traversing the \code{tail} (ln. 10-12).
 %
 Note that while nested iterations of \code{traverse} await 1 second, all 
 previous iterations are blocked, retaining their full state of execution.
 %
-Note also that a trail in parallel (ln. 21--24) remains reactive in the 
+Note also that a parallel trail (ln. 21--24) remains reactive in the 
 meantime, and can mutate the list at any time.
 %
-With the protection of the \code{watching} block (ln. 9--14), if the element 
-\code{e} (ln. 8) is released from memory during the await (ln. 11) due to a 
+We handle the issue of parallel mutations using the \code{watching} construct.
+The \code{watching} block aborts if the object being watched
+is released from memory~\cite{ceu.mod15}.
+%
+Using \code{watching e} (ln. 9--14) we ensure that if element \code{e}
+is released from memory during \code{await} (ln. 11) due to a 
 mutation in the list (ln. 22), we simply ignore the whole subtree and return 0 
 (ln. 15).
 %
 \CEU enforces at compile time that all accesses to pointers that cross 
 \code{await} statements are protected with an enclosing \code{watching} block.
-%
-The \code{watching} automatically aborts its nested block when the referred 
-object is released from memory~\cite{ceu.mod15}.
 %
 This ensures that if concurrent side effects affect the pointed object, no code 
 uses the stale pointer, because the whole block is aborted.
