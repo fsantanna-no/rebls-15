@@ -478,18 +478,18 @@ The code in Figure~\ref{lst.list.sum} creates a list (ln. 1) and traverses it
 to calculate the sum of elements (ln. 3--11).
 The \code{traverse} block (ln. 4--11) starts with the element \code{e} 
 pointing to the root of the list \code{lst}.
-The \code{escape} statement (ln. 6,9) returns a value to the enclosing 
+The \code{escape} statements (ln. 6,9) return a value to the enclosing 
 assignment to \code{sum} (ln. 3).
 The sum of a \code{NIL} list is \code{0} (ln. 5--6)%
 \footnote{
 The operator \code{`:'}, as in \code{e:NIL}, is equivalent to C's \code{`->'}.
 }.
 A \code{CONS} list needs to calculate the \code{sum} of its tail recursively, 
-invoking \code{traverse} again (ln. 8), which will create a nested instance of 
-the enclosing \code{traverse} block (ln. 4--11), now with \code{e} pointing to 
+invoking \code{traverse} again (ln. 8), which creates a nested instance of the 
+enclosing \code{traverse} block (ln. 4--11), now with \code{e} pointing to 
 \code{e:CONS.tail}.
-Only after the complete recursive traversal of its subtree that the \code{CONS} 
-clause adds its \code{head} and returns the sum (ln. 9).
+Only after the recursive traversal of its subtree terminates that the 
+\code{CONS} clause adds its \code{head} and returns the sum (ln. 9).
 
 \begin{figure*}[t]
 \begin{minipage}[t]{0.48\linewidth}
@@ -598,14 +598,15 @@ Figure~\ref{lst.list.sum}, a \code{traverse} block is equivalent to an
 anonymous closure called recursively.
 %
 However, \code{traverse} complies with the event system and memory management 
-discipline of \CEU and is an abstraction defined in terms of a more fundamental 
-concept, \emph{organisms}~\cite{ceu.mod15}, which are objects with concurrent 
-trails of execution (akin to Simula~\cite{simula}).
+discipline of \CEU.
+In fact, it is an abstraction defined in terms of a more fundamental concept, 
+\emph{organisms}~\cite{ceu.mod15}, which are objects with concurrent trails of 
+execution (akin to Simula~\cite{simula}).
 %; and orthogonal abortion, which handles cancellation of trails maintaining 
 %memory consistency.
 %
 Figure~\ref{lst.list.sum.react} depicts the expansion of the \code{traverse} 
-construct.
+construct along with a non-trivial example.
 
 The example in \emph{CODE-1} of Figure~\ref{lst.list.sum.react} (\MM{C1}) 
 extends the body of the previous example in Figure~\ref{lst.list.sum} with 
@@ -625,9 +626,8 @@ The \code{watching} block aborts if the object being watched
 is released from memory~\cite{ceu.mod15}.
 %
 Using \code{watching e} (ln. 9--14) we ensure that if element \code{e}
-is released from memory during \code{await} (ln. 11) due to a 
-mutation in the list (ln. 22), we simply ignore the whole subtree and return 0 
-(ln. 15).
+is released from memory during \code{await} (ln. 11) due to a mutation in the 
+list (ln. 22), we simply ignore the whole subtree and return 0 (ln. 15).
 %
 \CEU enforces at compile time that all accesses to pointers that cross 
 \code{await} statements are protected with an enclosing \code{watching} block.
@@ -652,7 +652,8 @@ elements to traverse (\MM{C1}: 1 and \MM{C2}: 4, 29).
 %
 To ``call'' the first \code{traverse} iteration, we dynamically \code{spawn} a 
 \code{Frame} instance into the \code{frames} pool (\MM{C2}: 31--32), which runs 
-implicitly in parallel with the rest of the application (e.g., \MM{C2}: 36--39)~\cite{ceu.mod15}.
+implicitly in parallel with the rest of the application (e.g., \MM{C2}: 
+36--39).
 Then, we immediately \code{await} the termination of this \code{frame} 
 (\MM{C2}: 33).
 Only after the whole traversal finishes 
@@ -685,9 +686,9 @@ different from recursive function calls:
 %
 \begin{enumerate}
 \item Each \code{traverse} invocation spawns a new organism for the frame which 
-can execute concurrently with other parts of the application.
-Also, each frame itself can execute arbitrary code in \CEU with concurrent 
-trails (to be illustrated in Section~\ref{sec.apps}).
+executes concurrently with other parts of the application.
+Also, each frame itself can execute arbitrary code in \CEU with nested 
+concurrent trails (to be illustrated in Section~\ref{sec.apps}).
 %
 \item A \code{traverse} is attached to a lexically-scoped memory pool for 
 specific a data structure.
@@ -703,12 +704,12 @@ to a narrower lexical scope (e.g., \MM{C2}: 1 \emph{vs.} 29)~\cite{ceu.mod15}.
 \item The execution body of a \code{traverse} block is implicitly wrapped by a 
 concurrency construct that watches for mutations of the current node.
 In practice, this means that it reacts consistently if another trail of 
-execution modifies the data structure being traversed.
+execution modifies the data structure being traversed (e.g., \MM{C1}: 22).
 \end{enumerate}
 
 We believe that the \code{traverse} construct, more than a simple convenience, 
-considerably reduces the complexity of programs, handling automatically 
-hierarchy of behaviors associated with recursive data types.
+reduces the complexity of programs considerably, handling hierarchy of 
+behaviors associated with recursive data types automatically.
 
 %TODO: expansion is simplified:
 % option type, mem fail, passing arguments, outer closure
@@ -1288,11 +1289,11 @@ semantics for recursive data fields propagates changes to tracked pointers
 automatically.
 %designed for static memory management based on pools.
 
-Introducing a control structure specifically for traversing recursive data is
-unusual, but parallels can be made to other languages.
+%Introducing a control structure specifically for traversing recursive data is
+%unusual, but parallels can be made to other languages.
 
-More general approaches such as generators first appeared in CLU \cite{clu}, 
-but their stackless implementation did not support recursion.
+More universal approaches such as generators first appeared in CLU \cite{clu},
+but with a stackless implementation that did not support recursion.
 %
 Icon \cite{icon} allows yielding through recursive functions, but delegation is 
 explicit via the \code{suspend} keyword.
@@ -1308,15 +1309,16 @@ but those were later internally promoted to coroutines in order to support
 recursion. Finally, in version 3.3, a form of delegation was
 introduced~\cite{peps}.
 %
-In contrast, Lua~\cite{lua} has first-class stackful coroutines:
+Lua~\cite{lua} has first-class stackful coroutines:
 generator functions have to be constructed by wrapping coroutine objects, but 
 explicit delegation in recursive calls is not required.
 %
-\CEU builds its higher-level \code{traverse} construct on organisms, which are 
-also a primitive for cooperative multitasking, but with transparent support for 
-recursion and concurrency.
-This allows composing parallel traversals more naturally in comparison to 
-coroutines, which would require a specialized scheduler.
+\CEU builds its higher-level \code{traverse} construct on top of organisms, 
+which also provides cooperative-like multitasking, but with transparent support 
+for recursion and concurrency.
+Organisms allow composing parallel traversals more naturally in comparison to 
+coroutines, which requires a specialized scheduler and does not impose safety 
+guarantees.
 
 \section{Conclusion}
 \label{sec.conclusion}
@@ -1334,8 +1336,8 @@ not straightforward, specially with support for mutation.
 The \code{traverse} construct encapsulates an idiom that handles each recursive 
 step in a separate organism (\CEU's abstraction mechanism), allowing concurrent 
 traversal while preserving the language's safety properties.
-A \code{traverse} block is tied with its associated data structure, ensuring bounded 
-execution time. %, in line with the philosophy of \CEU.
+A \code{traverse} block is tied with its associated data structure, ensuring 
+bounded execution time. %, in line with the philosophy of \CEU.
 By dealing with concurrency in a primitive control mechanism, we make reactive 
 traversal as easy to perform correctly as a recursive function call.
 
@@ -1348,7 +1350,7 @@ Difficult because of
     -DONE- mutation of the data structure being traversed
 \end{comment}
 
-We impose some restrictions on the data structures that we can represent.
+We impose some restrictions on the data structures that can be represented.
 On the one hand, the requirement of a tree hierarchy with move semantics 
 demands care when designing algorithms to manipulate these structures.
 On the other hand, these restrictions enable static memory management with
