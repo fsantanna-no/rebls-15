@@ -1314,8 +1314,8 @@ generator functions have to be constructed by wrapping coroutine objects, but
 explicit delegation in recursive calls is not required.
 %
 \CEU builds its higher-level \code{traverse} construct on top of organisms, 
-which also provides cooperative-like multitasking, but with transparent support 
-for recursion and concurrency.
+which also provides cooperative multitasking, but with transparent support for 
+recursion and concurrency.
 Organisms allow composing parallel traversals more naturally in comparison to 
 coroutines, which requires a specialized scheduler and does not impose safety 
 guarantees.
