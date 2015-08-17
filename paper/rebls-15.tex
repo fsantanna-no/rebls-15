@@ -1272,12 +1272,12 @@ concurrent updates.
 Some attempts make this process more transparent, but performance concerns 
 ultimately require the programmer to specify behavior explicitly.
 %
-One-way dataflow constraints can track updates in data structures in a reactive 
+One-way dataflow constraints were used to track updates in data structures in a reactive 
 imperative language~\cite{ripdataflow}.
-Classes are annotated with constraint handler functions which are recursively 
+In it, classes are annotated with constraint handler functions which are recursively 
 called on value updates.
 %
-Another approach focus on incremental computation and uses a combination of 
+Another approach focuses on incremental computation and uses a combination of 
 dynamic dependency graphs and memoization~\cite{selfadjusting}.
 Keeping track of dependencies incurs significant overhead: traceable data types
 \cite{traceable} mitigates this issue, letting the programmer control the 
@@ -1334,7 +1334,7 @@ not straightforward, specially with support for mutation.
 The \code{traverse} construct encapsulates an idiom that handles each recursive 
 step in a separate organism (\CEU's abstraction mechanism), allowing concurrent 
 traversal while preserving the language's safety properties.
-A \code{traverse} is tied with its associated data structure, ensuring bounded 
+A \code{traverse} block is tied with its associated data structure, ensuring bounded 
 execution time. %, in line with the philosophy of \CEU.
 By dealing with concurrency in a primitive control mechanism, we make reactive 
 traversal as easy to perform correctly as a recursive function call.
