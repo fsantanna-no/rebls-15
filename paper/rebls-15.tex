@@ -1262,41 +1262,54 @@ Note that the new \code{waiting} subtree preserves the neutral \code{ITEM}
 \section{Related Work}
 \label{sec.related}
 
-Traversing data reactively in an imperative language requires
-dealing with concurrent updates. While attempts are made to make to this
-process more transparent, performance concerns ultimately require the
-programmer to specify behavior explicitly. In \cite{ripdataflow}, one-way
-dataflow constraints are used to track updates in data structures in a
-reactive imperative language. In it, classes are annotated with
-constraint handler functions, recursively called in the event
-of value updates. Another approach, focused on incremental computation,
-is self-adjusting computation \cite{selfadjusting}, using a
-combination of dynamic dependency graphs and memoization. Keeping track of
-dependencies incurs significant overhead: traceable data types
-\cite{traceable} are one way to mitigating this issue, letting the
-programmer control the granularity of tracked data. In \CEU, tracking pointer
-updates is explicit (and enforced), and recursive data fields have
-move semantics designed for static memory management based on pools.
+Traversing data reactively in an imperative language requires dealing with 
+concurrent updates.
+Some attempts make this process more transparent, but performance concerns 
+ultimately require the programmer to specify behavior explicitly.
+%
+One-way dataflow constraints can track updates in data structures in a reactive 
+imperative language~\cite{ripdataflow}.
+Classes are annotated with constraint handler functions which are recursively 
+called on value updates.
+%
+Another approach focus on incremental computation and uses a combination of 
+dynamic dependency graphs and memoization~\cite{selfadjusting}.
+Keeping track of dependencies incurs significant overhead: traceable data types
+\cite{traceable} mitigates this issue, letting the programmer control the 
+granularity of tracked data.
+%
+In \CEU, tracking pointer updates is explicit (and enforced), and the move 
+semantics for recursive data fields propagates changes to tracked pointers 
+automatically.
+%designed for static memory management based on pools.
 
 Introducing a control structure specifically for traversing recursive data is
-unusual, but parallels can be made to other languages. Generators trace their
-history back to CLU \cite{clu}, but their implementation was stackless and
-therefore did not support recursion. Icon \cite{icon} allows yielding through
-recursive functions, but delegation is explicit via the \code{suspend}
-keyword. In \cite{icon}, Icon generators are used for implementing
+unusual, but parallels can be made to other languages.
+
+More general approaches such as generators first appeared in CLU \cite{clu}, 
+but their stackless implementation did not support recursion.
+%
+Icon \cite{icon} allows yielding through recursive functions, but delegation is 
+explicit via the \code{suspend} keyword.
+%
+\begin{comment}
+In \cite{icon}, Icon generators are used for implementing
 goal-directed programming via ``control backtracking'' similarly to selector
-nodes presented in Section \ref{subsec.bt}. Python originally
-introduced CLU-like stackless generators in version 2.2 \cite{pep255}, but
-those were later internally promoted to coroutines in order to support
-recursion \cite{pep342}. Finally, in version 3.3, a form of delegation was
-introduced. In contrast, Lua \cite{lua} has first-class stackful coroutines:
-generator functions have to be constructed by wrapping coroutine objects, but
-there is no need for explicit delegation in recursive calls. \CEU builds its
-higher-level \code{traverse} construct on organisms, which are also a primitive
-for cooperative multitasking, supporting recursion and concurrency
-transparently. This allows composing parallel traversals naturally; 
-in contrast, traversing using multiple coroutines in Lua or Python requires
-an explicit coroutine scheduler.
+nodes presented in Section \ref{subsec.bt}.
+\end{comment}
+%
+Python supports CLU-like stackless generators, as well as more general 
+coroutines with support to recursion and delegation~\cite{peps}.
+%
+In contrast, Lua~\cite{lua} has first-class stackful coroutines:
+generator functions have to be constructed by wrapping coroutine objects, but 
+explicit delegation in recursive calls is not required.
+%
+\CEU builds its higher-level \code{traverse} construct on organisms, which are 
+also a primitive for cooperative multitasking, but with transparent support for 
+recursion and concurrency.
+This allows composing parallel traversals more naturally in comparison to 
+coroutines, which would require a specialized scheduler.
 
 \section{Conclusion}
 \label{sec.conclusion}
@@ -1304,26 +1317,20 @@ an explicit coroutine scheduler.
 We presented a new construct for traversing recursive data types
 incrementally in the context of \CEU, an imperative reactive language with
 synchronous concurrency.
+Combining concurrency and safety while traversing recursive data structures is 
+not straightforward, specially with support for mutation.
+%Furthermore, ensuring that a traversal does not manipulate stale subtrees 
+%(originated from mutations) requires a continuous monitoring of nodes.
+%For instance, composing parallel constructs during recursion requires that 
+%each recursive step spawns new concurrent lines of execution.
+
 The \code{traverse} construct encapsulates an idiom that handles each recursive 
 step in a separate organism (\CEU's abstraction mechanism), allowing concurrent 
-traversal %using the language's concurrency features
-while preserving the language's safety properties.
-
-%This kind of traversal can be done in \CEU through the use of organisms
-%(pooled objects which launch their own execution trails) and orthogonal
-%abortion via the \code{watching} construct.
-However, combining concurrency and safety while traversing a mutable recursive 
-data structure is not straightforward.
-For instance, composing parallel constructs during recursion requires that each 
-recursive step spawns new lines of execution.
-Also, ensuring that a traversal does not manipulate stale subtrees (originated 
-from mutations) requires watching nodes to abort it.
-Additionally, by presenting a control construct that is tied to a data 
-structure, we can ensure bounded execution time, in line with the philosophy of
-\CEU.
-By dealing with these concerns internally in the \code{traverse} statement, we 
-make reactive traversal as easy to perform correctly as a recursive function 
-call.
+traversal while preserving the language's safety properties.
+A \code{traverse} is tied with its associated data structure, ensuring bounded 
+execution time. %, in line with the philosophy of \CEU.
+By dealing with concurrency in a primitive control mechanism, we make reactive 
+traversal as easy to perform correctly as a recursive function call.
 
 \begin{comment}
 Difficult because of
@@ -1334,23 +1341,21 @@ Difficult because of
     -DONE- mutation of the data structure being traversed
 \end{comment}
 
-We impose restrictions to the kinds of structures that can be represented with 
-recursive data types in \CEU.
-On the one hand, the requirement of a tree hierarchy with move semantics for 
-assignments demands care in the design of algorithms manipulating these 
-structures.
-%, as illustrated in Section \ref{sub.enqueuing}.
+We impose some restrictions on the data structures that we can represent.
+On the one hand, the requirement of a tree hierarchy with move semantics 
+demands care when designing algorithms to manipulate these structures.
 On the other hand, these restrictions enable static memory management with
-%bounded memory pools and
 deterministic deallocation.
 Still, we do not feel that the restrictions are prohibitively limiting.
-For instance, persistent data structures in functional languages 
-\cite{okasaki.purely} operate under tighter design constraints.
+For instance, persistent data structures in functional languages operate under 
+similar constraints.
 
+\begin{comment}
 Possibilities for future work are the introduction of type arguments for 
 \code{data} declarations, and investigating possibilities for relaxing \CEU 
 pointer and reference restrictions without sacrificing safety.
 % properties on recursive data.
+\end{comment}
 
 %\newpage % TTT
 \balance
