@@ -16,6 +16,7 @@
 
 \usepackage{verbatim}
 \usepackage{enumitem}
+\usepackage{dblfloatfix}
 %\usepackage{epstopdf}
 
 \usepackage{color}
@@ -169,8 +170,8 @@ DESIGNED FOR \CEU:
 
 \terms{Design, Languages}
 
-\keywords{Behavior Trees, Domain Specific Languages, Incremental Computation, 
-Logo, Recursive Data Types, Structured Programming, Reactive Programming}
+\keywords{Reactive Programming, Recursive Data Types, Structured Programming,
+Behavior Trees, Domain Specific Languages, Incremental Computation, Logo}
 
 \section{Introduction}
 
@@ -778,7 +779,7 @@ This skeleton is extensible with leaves to test and set properties, perform
 animations and sounds, etc., and is an effective alternative to finite state 
 machines for authoring game AI.
 
-However, because the evaluation of trees extend across multiple game frames, 
+However, because the evaluation of trees extends across multiple game frames, 
 specifying node behaviors in generic languages via event-driven programming 
 becomes a challenge due to ``stack ripping''~\cite{krohn2007events}.
 %
@@ -951,31 +952,31 @@ The \code{AWAIT} tag (ln. 12) simply awaits a given number of milliseconds.
 The \code{PAROR} tag (ln. 14) launches two commands in parallel, and aborts 
 both as soon as one of them terminates.
 %
-As an example, the program in lines 54--60 makes the turtle to move along a 
+As an example, the program in lines 54--56 makes the turtle to move along a 
 semicircle.
 
 The interpreter for the commands is also abstracted in a class definition 
-(ln. 17--52).
+(ln. 17--51).
 %
 It holds as attributes a reference to a \code{Turtle} object (which implements 
-the UI) and a reference to the commands (ln. 18--19).
+the UI) and a reference to the commands (ln. 17--18).
 The execution body of the class uses the \code{traverse} construct to interpret 
-the commands (ln. 21--51).
+the commands (ln. 20--50).
 %
-The \code{SEQ} tag (ln. 23--25) traverses each of its subcommands in sequence 
+The \code{SEQ} tag (ln. 22--24) traverses each of its subcommands in sequence 
 (in contrast with \code{BTreeInterpreter}, it does not handle failures).
 %
-The \code{REPEAT} tag (ln. 27--30) traverses its subcommand the specified number 
+The \code{REPEAT} tag (ln. 26--29) traverses its subcommand the specified number 
 of times.
 %
-The \code{MOVE} and \code{ROTATE} tags (ln. 32--38) rely on predefined classes 
+The \code{MOVE} and \code{ROTATE} tags (ln. 31--37) rely on predefined classes 
 of organisms to update the position and orientation of the received 
 \code{turtle}.
 %
-The \code{AWAIT} tag (ln. 40--41) simply causes the current iteration of the 
+The \code{AWAIT} tag (ln. 39--40) simply causes the current iteration of the 
 \code{traverse} to await the given amount of time.
 %
-Finally, the \code{PAROR} tag (ln. 43--48) uses the \code{par/or} construct
+Finally, the \code{PAROR} tag (ln. 42--47) uses the \code{par/or} construct
 to traverse both subcommands at the same time:
 as soon as one of the subtrees terminates its execution, the other one is 
 safely aborted~\cite{ceu.sensys13}.
@@ -1145,6 +1146,26 @@ end
 }
 \end{figure*}
 
+\setcounter{figure}{9}
+\begin{figure*}[b]
+\centering
+\includegraphics[scale=0.24]{queue-fig-2.eps}
+\caption{
+Enqueuing new commands.
+\label{fig.queue-2}
+}
+\end{figure*}
+
+\setcounter{figure}{8}
+\begin{figure}[h!]
+\centering
+\includegraphics[scale=0.24]{queue-fig-1.eps}
+\caption{
+Swapping \code{waiting} and \code{running} commands.
+\label{fig.queue-1}
+}
+\end{figure}
+
 All examples so far create a fixed tree that does not vary during traversal.
 %
 Figure~\ref{lst.turtle.queue} extends the Turtle application with a queue of 
@@ -1164,24 +1185,6 @@ As Figure~\ref{fig.queue-1} illustrates in box \code{0}, a queue instance has a
 single \code{ROOT} node with linked lists of \code{ITEM} nodes in the 
 \code{running} and \code{waiting} fields.
 Except when creating a new command, the \code{tmp} field is always \code{NIL}.
-
-\begin{figure*}[t]
-\centering
-\includegraphics[scale=0.24]{queue-fig-2.eps}
-\caption{
-Enqueuing new commands.
-\label{fig.queue-2}
-}
-\end{figure*}
-
-\begin{figure}[h!]
-\centering
-\includegraphics[scale=0.24]{queue-fig-1.eps}
-\caption{
-Swapping \code{waiting} and \code{running} commands.
-\label{fig.queue-1}
-}
-\end{figure}
 
 We define the \code{queue} traversal in \emph{CODE-4}.
 %
@@ -1249,7 +1252,7 @@ tail of \code{tmp}, in the place of \code{NIL} (\MM{H}).
 The old location is automatically set to \code{NIL}.
 Note that we skip the neutral \code{ITEM} nodes of both \code{waiting} and 
 \code{tmp} fields.
-This prevents the \code{waiting} root to become \code{NIL} and awake the 
+This prevents the \code{waiting} root from becoming \code{NIL} and awaking the 
 \code{ROOT} node (\emph{CODE-4}: 8) before we finish the enqueuing operation.
 %
 \item Line 17 moves the \code{tmp} subtree (\MM{E}) back to the \code{waiting} 
@@ -1257,7 +1260,7 @@ field, releasing the abandoned neutral \code{ITEM} (\MM{D}), and notifying the
 \code{ROOT} node that the queue is no longer empty.
 The \code{tmp} field is automatically set to \code{NIL}.
 Note that the new \code{waiting} subtree preserves the neutral \code{ITEM} 
-\MM{E} for subsequent enqueue operations.
+\MM{E} for subsequent enqueuing operations.
 %
 \end{itemize}
 
