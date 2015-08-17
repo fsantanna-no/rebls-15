@@ -309,15 +309,18 @@ in comparison to handcrafted event-driven code written directly in
 
 The \code{data} construct in \CEU provides a safer alternative to C's
 \code{struct}, \code{union}, and \code{enum} definitions.
-%
+All allocations are made in terms of a memory pool, and instances
+must form a tree structure with respect to the pool's \emph{root element}.
+
 Figure~\ref{lst.list} illustrates the recursive \code{List} data type,
 declared as a tagged union (ln. 1--5).
 The first tag of a recursive type has a special meaning and represents the 
 union's \emph{null tag}.
 In the example, the tag \code{NIL} also represents an empty list (ln. 2).
-The second tag, \code{CONS} (ln. 4), receives two arguments in the constructor: 
-an integer value for the \code{head} field and the rest of the list in the 
-recursive field \code{tail}.
+The second tag, \code{CONS} (ln. 4), represents list nodes.
+%receives two arguments in the constructor: 
+%an integer value for the \code{head} field and the rest of the list in the 
+%recursive field \code{tail}.
 
 \begin{comment}
 A \code{data} entry
@@ -352,17 +355,16 @@ The \code{data} construct in \CEU
 In the first block of the example (ln. 7--16), we declare a \code{pool} of 
 \code{List} objects of size 1 (ln. 8).
 %
-All instances of a recursive data type must reside in an explicit memory pool, 
-which have static memory management based on its enclosing lexical scope (ln.  
+All pools have static memory management based on their enclosing lexical scope (ln.  
 7--16).
 %
-A pool also represents the reference to the root instance, which is implicitly 
-initialized to the \emph{null} tag of the associated data type, i.e., 
+The pool variable represents the root element, and is implicitly 
+initialized to the \emph{null} tag of its data type, i.e., 
 \code{lst1} receives \code{List.NIL} (ln. 8).
 %
 Then, we use the \code{=new} construct which performs
 allocation and assignment at the same time (ln. 9--12):
-it attempts to dynamically allocate a list of three elements (10, 20, and 30),
+it attempts to allocate a list of three elements (10, 20, and 30),
 and assigns the result to \code{lst1}, which is also the destination memory 
 pool for the allocation (inferred from the \emph{l-value} in the assignment).
 %
@@ -428,11 +430,10 @@ A recursive \code{List} data type definition (ln. 1--5) with uses (ln.
 }
 \end{figure}
 
-In \CEU, recursive data types have a number of restrictions.
-Given that mutations deallocate whole subtrees, data types cannot represent 
-general graphs with cycles, but only tree-like structures.
-Also, elements in different pools cannot be mixed without copying.
-Finally, pointers to subtrees (i.e., weak references) must be observed via the
+In \CEU, recursive data types impose some restrictions.
+Elements in different pools cannot be mixed without copying.
+Types may contain arbitrary weak pointers, but weak pointers to \CEU
+structures must be observed via the
 \code{watching} construct, as they can be invalidated at any time
 (to be discussed in Section~\ref{sec.traverse}).
 
@@ -518,7 +519,6 @@ with
       // possible concurrent mutation
   <...>
 end
-
 
 
 
@@ -1298,8 +1298,10 @@ goal-directed programming via ``control backtracking'' similarly to selector
 nodes presented in Section \ref{subsec.bt}.
 \end{comment}
 %
-Python supports CLU-like stackless generators, as well as more general 
-coroutines with support to recursion and delegation~\cite{peps}.
+Python originally introduced CLU-like stackless generators in version 2.2,
+but those were later internally promoted to coroutines in order to support
+recursion. Finally, in version 3.3, a form of delegation was
+introduced~\cite{peps}.
 %
 In contrast, Lua~\cite{lua} has first-class stackful coroutines:
 generator functions have to be constructed by wrapping coroutine objects, but 
