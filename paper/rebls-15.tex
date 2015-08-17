@@ -532,6 +532,7 @@ end
 
 
 
+
 .
 \end{lstlisting}
 \end{minipage}
@@ -540,34 +541,32 @@ end
 \begin{lstlisting}[numbers=left,xleftmargin=3.5em,title=\MM{C2} CODE-2: Expanded code (without \code{traverse})]
 pool List[3] lst = <...>;  // [10, 20, 30]
 
-class Frame (Frame[3]& frames,
-             _Dummy*   parent,
-             List[3]*  e)
-do
-  watching *this.parent do
-    if e:NIL then
-      escape 0;
-    else
-      watching e do
-        _printf("me = %d\n", e:CONS.head);
-        await 1s;
-        do
-          var _Dummy scope;
-          var Frame* frame = spawn Frame(this.frames,
-                                         &scope,
-                                         e:CONS.tail);
-                             in this.frames;
-          var int sum_tail = await *frame;
-        end
-        escape sum_tail + e:CONS.head;
-      end
-      escape 0;
-    end
-  end
-  escape 0;
-end
-
 par do
+  class Frame (Frame[3]& frames,
+               _Dummy*   parent,
+               List[3]*  e)
+  do
+    watching *this.parent do
+      if e:NIL then
+        escape 0;
+      else
+        watching e do
+          _printf("me = %d\n", e:CONS.head);
+          await 1s;
+          do
+            var _Dummy scope;
+            var Frame* frame = spawn Frame(this.frames,
+                                   &scope, e:CONS.tail)
+                               in this.frames;
+            var int sum_tail = await *frame;
+          end
+          escape sum_tail + e:CONS.head;
+        end
+        escape 0;
+      end
+    end
+    escape 0;
+  end
   pool Frame[3] frames;
   var _Dummy scope;
   var Frame* frame = spawn Frame(frames, &scope, lst)
@@ -575,7 +574,10 @@ par do
   var int sum = await *frame;
   _printf("sum = %d\n", sum); // prints 60
 with
-  <...> // possible concurrent mutation
+  <...>
+    lst.CONS.tail = NIL();
+      // possible concurrent mutation
+  <...>
 end
 
 \end{lstlisting}
@@ -637,45 +639,44 @@ expansion of \MM{C1} without the \code{traverse} construct.
 %
 Because it contains concurrency constructs (i.e., \code{await} and 
 \code{watching}), the body of the \code{traverse} (\MM{C1}: 6--16) is 
-abstracted in an organism of the \code{Frame} class (\MM{C2}: 3--28), which is 
+abstracted in an organism of the \code{Frame} class (\MM{C2}: 4--26), which is 
 analogous to ``stack frames'' for subroutines in standard programming 
 languages.
 %
 In \CEU, organisms also reside in lexically-scoped memory 
-pools~\cite{ceu.mod15}, hence, the \code{pool} of frames (\MM{C2}: 31) is 
+pools~\cite{ceu.mod15}, hence, the \code{pool} of frames (\MM{C2}: 29) is 
 analogous to a runtime ``call stack''.
 We limit the number of stack frames to match the exact maximum number of 
-elements to traverse (\MM{C1}: 1 and \MM{C2}: 1,31).
+elements to traverse (\MM{C1}: 1 and \MM{C2}: 4, 29).
 %
 To ``call'' the first \code{traverse} iteration, we dynamically \code{spawn} a 
-\code{Frame} instance into the \code{frames} pool (\MM{C2}: 33--34), which runs 
-implicitly in parallel with the rest of the application (e.g., ln.  
-39)~\cite{ceu.mod15}.
+\code{Frame} instance into the \code{frames} pool (\MM{C2}: 31--32), which runs 
+implicitly in parallel with the rest of the application (e.g., \MM{C2}: 36--39)~\cite{ceu.mod15}.
 Then, we immediately \code{await} the termination of this \code{frame} 
-(\MM{C2}: 35).
-Only after the \code{traverse} rolls back and clears the whole call stack
-that we acquire the \code{sum} and print it (\MM{C2}: 35--36).
+(\MM{C2}: 33).
+Only after the whole traversal finishes 
+that we acquire the \code{sum} and print it (\MM{C2}: 33--34).
 
-A \code{Frame} receives three arguments in the constructor (\MM{C2}: 3--5):
+A \code{Frame} receives three arguments in the constructor (\MM{C2}: 4--6):
 a reference to a \code{pool} (to recursively \code{spawn} new frames);
 a pointer to its parent scope (to handle abortion);
 and a pointer to the subtree of the data type (to be able to manipulate it).
 %
-The \code{Frame} constructor for the first call (\MM{C2}: 33--34) receives the 
+The \code{Frame} constructor for the first call (\MM{C2}: 31--32) receives the 
 static pool of frames, a dummy \code{scope} organism attached to the current 
 scope, and the original tree to traverse (\MM{C1}: 5).
 %
-The \code{Frame} constructor for recursive calls (\MM{C2}: 16--19) receives the 
-same pool of frames, another dummy \code{scope} as parent, and the original 
-subtree in the recursive invocation (\MM{C1}: 12).
+The \code{Frame} constructor for recursive calls (\MM{C2}: 17--19) receives the 
+same pool of frames, another dummy \code{scope} as parent, and the 
+subtree for the recursive invocation (\MM{C1}: 12).
 %
-The \code{Frame} body (\MM{C2}: 7--27) watches the dummy organism attached to 
-its \code{parent} scope and aborts with the parent termination.
-The enclosing \code{watching} guarantees that the hierarchy in the call stack 
+The \code{Frame} body (\MM{C2}: 8--27) watches the dummy organism attached to 
+its \code{parent} scope and aborts if the parent terminates.
+Watching an object in the parent scope guarantees that the hierarchy in the call stack 
 is preserved, i.e., that there are no orphan frames executing.
 %
 The remaining code is almost the same in the original \code{traverse} body and 
-in the \code{Frame} body (\MM{C1}: 6--16 and \MM{C2}: 8--25), with the 
+in the \code{Frame} body (\MM{C1}: 6--16 and \MM{C2}: 9--25), with the 
 exception of the recursive invocation explained above (\MM{C2}: 16--19).
 
 As the expansion illustrates, three aspects make \code{traverse} fundamentally 
@@ -696,7 +697,7 @@ real-time embedded systems, which is the original application domain of
 \CEU~\cite{ceu.sensys13}.
 In addition, when a recursive data structured goes out of scope, all associated 
 stack frames are automatically aborted, given that the pool of frames expands 
-to a narrower lexical scope (e.g., \MM{C2}: 1 \emph{vs.} 31)~\cite{ceu.mod15}.
+to a narrower lexical scope (e.g., \MM{C2}: 1 \emph{vs.} 29)~\cite{ceu.mod15}.
 %
 \item The execution body of a \code{traverse} block is implicitly wrapped by a 
 concurrency construct that watches for mutations of the current node.
