@@ -78,12 +78,14 @@ do
                     List.NIL())));
 
     var int sum =
-        traverse l in list do
+        traverse l in &&list do
             if l:NIL then
                 escape 0;
             else
-                var int sum_tail = traverse l:CONS.tail;
-                escape sum_tail + l:CONS.head;
+                watching *l do
+                    var int sum_tail = traverse &&l:CONS.tail;
+                    escape sum_tail + l:CONS.head;
+                end
             end
         end;
 
@@ -122,14 +124,14 @@ do
                         List.NIL())));
 
         var int sum =
-            traverse e in l do
+            traverse e in &&l do
                 if e:NIL then
                     escape 0;
                 else
                     watching *e do
                         _printf("partial = %d\n", e:CONS.head);
                         await 1s;
-                        var int sum_tail = traverse e:CONS.tail;
+                        var int sum_tail = traverse &&e:CONS.tail;
                         escape sum_tail + e:CONS.head;
                     end
                     escape 0;

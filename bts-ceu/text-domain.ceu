@@ -57,15 +57,15 @@ do
     if leaf.SENSEON then
         _printf("Is block %c on block %c? [0/1] ", leaf.SENSEON.b1,
                                              leaf.SENSEON.b2);
-        _scanf("%d", &answer);
+        _scanf("%d", &&answer);
         if answer then _printf("=> saw yes\n"); else _printf("=> saw no\n"); end
     else/if leaf.SENSECLEAR then
         _printf("Is block %c clear?\n", leaf.SENSECLEAR.b1);
-        _scanf("%d", &answer);
+        _scanf("%d", &&answer);
         if answer then _printf("=> saw yes\n"); else _printf("=> saw no\n"); end
     else/if leaf.SENSEONTABLE then
         _printf("Is block %c on the table? [0/1] ", leaf.SENSEONTABLE.b1);
-        _scanf("%d", &answer);
+        _scanf("%d", &&answer);
         if answer then _printf("=> saw yes\n"); else _printf("=> saw no\n"); end
     else/if leaf.MOVEBLOCKTOBLOCK then
         _printf("=> moving block %c from block %c to block %c\n",
@@ -111,13 +111,13 @@ pool BTree[] btree =
     );
 
 do BTreeTraverse with
-    this.btree = btree;
+    this.btree = &btree;
 end;
 
 _printf("\n--------------------------------\n");
 
 do BTreeTraverse with
-    this.btree = btree;
+    this.btree = &btree;
 end;
 
 _printf("\n");
