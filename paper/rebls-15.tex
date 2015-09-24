@@ -381,9 +381,9 @@ elements inside it.
 
 In the second block (ln. 18--24), we declare the \code{lst2} pool with an 
 unbounded memory limit (i.e., \code{List[]} in line 19).
-Now, all allocations succeed (ln. 20)%
+Now, all allocations succeed (ln. 20).%
 \footnote{To save space, in the next examples we omit the data type prefix in 
-tags (e.g., \code{List.CONS} becomes \code{CONS}).}.
+tags (e.g., \code{List.CONS} becomes \code{CONS}).}
 Then, we mutate the tail of the first element to point to a newly allocated 
 element in the same pool, which also succeeds (ln. 21).
 At the moment of the mutation, the old subtree (containing values  
@@ -480,10 +480,10 @@ The \code{traverse} block (ln. 4--11) starts with the element \code{e}
 pointing to the root of the list \code{lst}.
 The \code{escape} statements (ln. 6,9) return a value to the enclosing 
 assignment to \code{sum} (ln. 3).
-The sum of a \code{NIL} list is \code{0} (ln. 5--6)%
+The sum of a \code{NIL} list is \code{0} (ln. 5--6).%
 \footnote{
 The operator \code{`:'}, as in \code{e:NIL}, is equivalent to C's \code{`->'}.
-}.
+}
 A \code{CONS} list needs to calculate the \code{sum} of its tail recursively, 
 invoking \code{traverse} again (ln. 8), which creates a nested instance of the 
 enclosing \code{traverse} block (ln. 4--11), now with \code{e} pointing to 
@@ -690,8 +690,8 @@ executes concurrently with other parts of the application.
 Also, each frame itself can execute arbitrary code in \CEU with nested 
 concurrent trails (to be illustrated in Section~\ref{sec.apps}).
 %
-\item A \code{traverse} is attached to a lexically-scoped memory pool for 
-specific a data structure.
+\item A \code{traverse} is attached to a lexically-scoped memory pool for a 
+specific data structure.
 Therefore, we can infer at compile time the maximum traversal depth if the data 
 is bounded (e.g., \code{List[3] lst}).
 Enforcing bounded limits is an important requirement for constrained and 
@@ -1173,7 +1173,7 @@ Figure~\ref{lst.turtle.queue} extends the Turtle application with a queue of
 pending commands to execute.
 
 We define a new \code{Queue} data type in \emph{CODE-3}:
-The \code{ROOT} tag (ln. 4--6) has a \code{runnning} subtree of commands, a 
+The \code{ROOT} tag (ln. 4--6) has a \code{running} subtree of commands, a 
 \code{waiting} queue of pending commands, and a \code{tmp} node to allow 
 in-place manipulation of the tree (to be discussed further).
 %
@@ -1327,7 +1327,7 @@ We presented a new construct for traversing recursive data types
 incrementally in the context of \CEU, an imperative reactive language with
 synchronous concurrency.
 Combining concurrency and safety while traversing recursive data structures is 
-not straightforward, specially with support for mutation.
+not straightforward, especially with support for mutation.
 %Furthermore, ensuring that a traversal does not manipulate stale subtrees 
 %(originated from mutations) requires a continuous monitoring of nodes.
 %For instance, composing parallel constructs during recursion requires that 
