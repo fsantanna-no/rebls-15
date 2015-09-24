@@ -488,8 +488,8 @@ A \code{CONS} list needs to calculate the \code{sum} of its tail recursively,
 invoking \code{traverse} again (ln. 8), which creates a nested instance of the 
 enclosing \code{traverse} block (ln. 4--11), now with \code{e} pointing to 
 \code{e:CONS.tail}.
-Only after the recursive traversal of its subtree terminates that the 
-\code{CONS} clause adds its \code{head} and returns the sum (ln. 9).
+Only after the recursive traversal of its subtree terminates the \code{CONS} 
+clause adds its \code{head} and returns the sum (ln. 9).
 
 \begin{figure*}[t]
 \begin{minipage}[t]{0.48\linewidth}
