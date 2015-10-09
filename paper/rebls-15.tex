@@ -1226,7 +1226,7 @@ commands (ln. 17--18).
 Even though this example mutates the \code{running} field only \emph{after} its 
 traversal terminates (ln. 10--11), it is safe to do an arbitrary mutation at 
 any time.
-Note that the compiler enforces the use of the \code{watching} construct (ln. 
+Note that the compiler enforces the use of \code{watching} (ln. 
 2) which encloses the running turtle interpreter (ln. 17--18).
 Hence, if its enclosing \code{ITEM} (ln. 15) is mutated, the \code{watching} 
 will awake and abort the interpreter running inside the lexical scope.
@@ -1313,6 +1313,10 @@ Lua~\cite{lua} has first-class stackful coroutines:
 generator functions have to be constructed by wrapping coroutine objects, but 
 explicit delegation in recursive calls is not required.
 %
+More recently, extensions to support asynchronous concurrent updates during
+traversal have been proposed for Dart \cite{Meijer:2015:dart} and Scala \cite{haller2013ray}.
+Like our work, the Scala extension is translated into the language's core concurrency model.
+%
 \CEU builds its higher-level \code{traverse} construct on top of organisms, 
 which also provides cooperative multitasking, but with transparent support for 
 recursion and concurrency.
@@ -1340,7 +1344,7 @@ A \code{traverse} block is tied with its associated data structure, ensuring
 bounded execution time. %, in line with the philosophy of \CEU.
 By dealing with concurrency in a primitive control mechanism, we make reactive 
 traversal as easy to perform correctly as a recursive function call.
-
+%
 \begin{comment}
 Difficult because of
     multiple stack frames
@@ -1349,11 +1353,11 @@ Difficult because of
     -DONE- static memory management
     -DONE- mutation of the data structure being traversed
 \end{comment}
-
+%
 We impose some restrictions on the data structures that can be represented.
-On the one hand, the requirement of a tree hierarchy with move semantics 
-demands care when designing algorithms to manipulate these structures.
-On the other hand, these restrictions enable static memory management with
+The requirement of tree hierarchies with move semantics 
+demands care when designing algorithms that manipulate them.
+In trade, these restrictions enable static memory management with
 deterministic deallocation.
 Still, we do not feel that the restrictions are prohibitively limiting.
 For instance, persistent data structures in functional languages operate under 
