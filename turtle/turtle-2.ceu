@@ -75,10 +75,12 @@ pool Command[30] cmds =
 
 pool Command[30] cmds =
     new Command.PAROR(
-            Command.AWAIT(1000),
+// Passo 3: TROCAR await(3000) por 2x await(1500)...
+            Command.AWAIT(3000),
+            //Command.SEQUENCE(Command.AWAIT(1500),Command.AWAIT(1500)),
             Command.PAROR(
-                Command.MOVE(300),
-                Command.ROTATE(180)));
+                Command.MOVE(100),
+                Command.ROTATE(60)));
 
 
 class Turtle with
@@ -148,7 +150,8 @@ class Interpreter with
     pool Command[]& cmds;
 do
     traverse cmd in &&cmds do
-        watching *cmd do
+// Passo 1: antigo watching
+        //watching *cmd do
             //if cmd:NOTHING then
                 //nothing;
 
@@ -170,23 +173,33 @@ do
             else/if cmd:PAROR then
                 par/or do
                     traverse &&cmd:PAROR.one;
+// Passo 5: esse lado vai terminar
                 with
                     traverse &&cmd:PAROR.two;
                 end
+// Passo 5: abortando geral, terminando o traverse inteiro
 
             else/if cmd:SEQUENCE then
-                traverse &&cmd:SEQUENCE.one;
-                traverse &&cmd:SEQUENCE.two;
+// Passo 1: novo watching
+                watching *cmd do
+                    traverse &&cmd:SEQUENCE.one;
+// Passo 4: o segundo traverse nao vai executar
+                    traverse &&cmd:SEQUENCE.two;
+                end
+// Passo 4: vai abortar aqui, voltando um nível da arvore com o PAROR
 
             else/if cmd:REPEAT then
-                loop i in cmd:REPEAT.times do
-                    traverse &&cmd:REPEAT.command;
+// Passo 1: novo watching
+                watching *cmd do
+                    loop i in cmd:REPEAT.times do
+                        traverse &&cmd:REPEAT.command;
+                    end
                 end
 
             else
-                _ceu_out_assert(0, "not implemented");
+                _ceu_out_assert_msg(0, "not implemented");
             end
-        end
+        //end
     end
 end
 
@@ -200,10 +213,27 @@ with
 with
     var Turtle turtle;
 
-    do Interpreter with
-        this.turtle = &turtle;
-        this.cmds   = &cmds;
-    end;
+// Passo 2: novo par
+    par/and do
+        do Interpreter with
+            this.turtle = &turtle;
+            this.cmds   = &cmds;
+        end;
+    with
+// Passo 2:
+// Altera raiz da arvore apos 1s.
+// Como a arvore inteira eh atravessada ate as folhas sem esbarrar em nenhum 
+// watching, alterar a raiz (apagando a arvore inteira) nao tem efeito pratico 
+// e a tartaruga vai executar ate o fim.
+        await 1s;
+        this.cmds = new Command.NOTHING();
+// Passo 3:
+// Se alterar o await(3s) p/ 2x await(1.5s), entao a arvore nao sera 
+// atravessada por inteiro. Vai ter um SEQUENCE pendente com um watching em 
+// volta. A atribuicao acima vai apagar a arvore inteira, acordando o watching 
+// do SEQUENCE (Passo 4), voltando um nivel do traverse (PAROR, Passo 5), 
+// terminando o Interpreter inteiro.
+    end
 
     await FOREVER;
 with
