@@ -4,19 +4,32 @@
 
 // lst.turtle.queue
 
-#define HEADER_TITLE "Enqueuing Commands"
-#include "../header.ceu"
+#include "sdl.ceu"
+#include "sdl-gfx.ceu"
 
-native @nohold _scanf();
-native do
-    ##include <stdio.h>
-end
+input void SDL_REDRAW;
+input void SDL_QUIT;
+input int  SDL_DT;
 
-#ifdef ALL
-do Intro with
-    this.title = "Example of Figure 9\n > Enqueuing Commands";
-end;
-#endif
+var _SDL_Window&? win;
+    finalize
+        win = &_SDL_CreateWindow("Logo", _SDL_WINDOWPOS_CENTERED,
+                                         _SDL_WINDOWPOS_CENTERED,
+                                         400, 400,
+                                         _SDL_WINDOW_SHOWN);
+    with
+        _SDL_DestroyWindow(&&win!);
+    end
+
+var int w, h;
+_SDL_GetWindowSize(&&win!, &&w, &&h);
+
+var _SDL_Renderer&? ren;
+    finalize
+        ren = &_SDL_CreateRenderer(&&win!, -1, 0);
+    with
+        _SDL_DestroyRenderer(&&ren!);
+    end
 
 data Command with
     tag NOTHING;
@@ -64,7 +77,7 @@ or
     end
 end
 
-pool Queue[] queue = new
+pool Queue[20] queue = new
     Queue.ROOT(
         Queue.ITEM(
             Command.PAROR(
@@ -78,16 +91,17 @@ pool Queue[] queue = new
 
 
 class Turtle with
-    var SDL_Point pos   = SDL_Point(200,200);
-    var int       angle = 180;
+    var _SDL_Renderer& ren;
+    var SDL_Point      pos   = SDL_Point(200,200);
+    var int            angle = 180;
 do
     every SDL_REDRAW do
-        _filledCircleRGBA(_REN, pos.x,pos.y, 25,
+        _filledCircleRGBA(&&ren, pos.x,pos.y, 25,
                                 0x00,0xAA,0x00,0xFF);
 
         var int x = this.pos.x + 25*_sin(angle/(180.0/_M_PI));
         var int y = this.pos.y + 25*_cos(angle/(180.0/_M_PI));
-        _filledCircleRGBA(_REN, x,y, 8,
+        _filledCircleRGBA(&&ren, x,y, 8,
                                 0x00,0x00,0x00,0xFF);
     end
 end
@@ -144,7 +158,7 @@ do
 end
 
 class Interpreter with
-    var  Turtle&    turtle;
+    var  Turtle&     turtle;
     pool Command[]&& cmds;
 do
     traverse cmd in cmds do
@@ -184,7 +198,7 @@ do
                 end
 
             else
-                _ceu_out_assert_msg(0, "not implemented");
+                _ceu_out_assert(0, "not implemented");
             end
         end
     end
@@ -194,12 +208,14 @@ par/or do
     await SDL_QUIT;
 with
     every SDL_REDRAW do
-        _SDL_SetRenderDrawColor(_REN, 0xFF,0xFF,0xFF, 0xFF);
-        _SDL_RenderFillRect(_REN, null);
+        _SDL_SetRenderDrawColor(&&ren!, 0xFF,0xFF,0xFF, 0xFF);
+        _SDL_RenderFillRect(&&ren!, null);
     end
 with
 
-    var Turtle turtle;
+    var Turtle turtle with
+        this.ren = &ren!;
+    end;
 
     traverse qu in &&queue do
         watching *qu do
@@ -227,7 +243,6 @@ with
 
     await FOREVER;
 with
-#if 1
     _printf("; TURTLE STREAM COMMANDS:\n");
     _printf("> move 100 1000\n");
     _printf("   ; moves at 100 px/s during 1000 ms\n");
@@ -241,7 +256,6 @@ with
         native do
             void get_cmd (char* cmd, int* vel, int* time) {
                 while (1) {
-                    __fpurge(stdin);
                     printf("> ");
                     int n = scanf("%s", cmd);
                     if (n == 1) {
@@ -257,12 +271,15 @@ with
                         }
                     }
                     printf("invalid command\n");
+                    {
+                        char c;
+                        while((c = getchar()) != '\n' && c != EOF);
+                    }
                 }
             }
         end
 
-        native @plain _char;
-        var _char[255] cmd;
+        var char[255] cmd;
         var int vel, time;
         async/thread (cmd,vel,time) do
             _get_cmd(&&cmd, &&vel, &&time);
@@ -278,23 +295,23 @@ with
         else/if _strcmp(&&cmd,"move") == 0 then
             move_or_rotate = true;
             queue.ROOT.tmp = new Queue.ITEM(
-                                   Command.NOTHING(),
-                                   Queue.ITEM(
-                                     Command.PAROR(
+                                    Command.NOTHING(),
+                                    Queue.ITEM(
+                                      Command.PAROR(
                                        Command.MOVE(vel),
                                        Command.AWAIT(time)),
-                                     Queue.NIL()));
+                                      Queue.NIL()));
 
         // ROTATE
         else/if _strcmp(&&cmd,"rotate") == 0 then
             move_or_rotate = true;
             queue.ROOT.tmp = new Queue.ITEM(
-                                   Command.NOTHING(),
-                                   Queue.ITEM(
-                                     Command.PAROR(
+                                    Command.NOTHING(),
+                                    Queue.ITEM(
+                                      Command.PAROR(
                                        Command.ROTATE(vel),
                                        Command.AWAIT(time)),
-                                     Queue.NIL()));
+                                      Queue.NIL()));
         end
 
         if move_or_rotate then
@@ -302,7 +319,7 @@ with
             queue.ROOT.waiting = queue.ROOT.tmp;
         end
     end
-#else
+#if 0
     every 2s do
         do
             queue.ROOT.tmp = new Queue.ITEM(
@@ -312,6 +329,8 @@ with
                                        Command.ROTATE(180),
                                        Command.AWAIT(1000)),
                                       Queue.NIL()));
+            _ceu_out_assert(queue.ROOT.tmp.ITEM.prv.ITEM.cmds.PAROR.one.ROTATE,
+                            "out of memory");
             queue.ROOT.tmp.ITEM.prv.ITEM.prv = queue.ROOT.waiting.ITEM.prv;
             queue.ROOT.waiting = queue.ROOT.tmp;
         end
@@ -323,55 +342,21 @@ with
                                        Command.MOVE(180),
                                        Command.AWAIT(1000)),
                                       Queue.NIL()));
+            _ceu_out_assert(queue.ROOT.tmp.ITEM.prv.ITEM.cmds.PAROR.one.MOVE,
+                            "out of memory");
             queue.ROOT.tmp.ITEM.prv.ITEM.prv = queue.ROOT.waiting.ITEM.prv;
+#if 0
+_ceu_out_assert(queue.ROOT.tmp.ITEM.prv.ITEM.cmds.PAROR.one.ROTATE,
+        "out of memory");
+#endif
             queue.ROOT.waiting = queue.ROOT.tmp;
         end
-        do
-            queue.ROOT.tmp = new Queue.ITEM(
-                                    Command.NOTHING(),
-                                    Queue.ITEM(
-                                      Command.PAROR(
-                                       Command.ROTATE(180),
-                                       Command.AWAIT(1000)),
-                                      Queue.NIL()));
-            queue.ROOT.tmp.ITEM.prv.ITEM.prv = queue.ROOT.waiting.ITEM.prv;
-            queue.ROOT.waiting = queue.ROOT.tmp;
-        end
-        do
-            queue.ROOT.tmp = new Queue.ITEM(
-                                    Command.NOTHING(),
-                                    Queue.ITEM(
-                                      Command.PAROR(
-                                       Command.MOVE(180),
-                                       Command.AWAIT(1000)),
-                                      Queue.NIL()));
-            queue.ROOT.tmp.ITEM.prv.ITEM.prv = queue.ROOT.waiting.ITEM.prv;
-            queue.ROOT.waiting = queue.ROOT.tmp;
-        end
-traverse qu in queue.ROOT.waiting do
-    if qu:ITEM then
-        if qu:ITEM.cmds.NOTHING then
-            _printf("ITEM: rot=%d, mov=%d\n", 0, 0);
-        else
-            _printf("ITEM: rot=%d, mov=%d\n",
-                qu:ITEM.cmds.PAROR.one.ROTATE, qu:ITEM.cmds.PAROR.one.MOVE);
-        end
-        traverse qu:ITEM.prv;
-    else
-        _printf("NIL\n");
-    end
-end
-        _printf("OK\n");
     end
 #endif
 with
     every SDL_REDRAW do
-        _SDL_RenderPresent(_REN);
+        _SDL_RenderPresent(&&ren!);
     end
 end
 
-#ifdef ALL
-await FOREVER;
-#else
-escape 0;
-#endif
+escape 1;
